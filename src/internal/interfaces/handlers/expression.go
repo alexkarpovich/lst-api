@@ -1,10 +1,15 @@
 package handlers
 
 import (
+	"net/http"
+
+	"github.com/alexkarpovich/lst-api/src/internal/domain"
+	"github.com/alexkarpovich/lst-api/src/internal/utils"
 	"github.com/gorilla/mux"
 )
 
 type ExpressionInteractor interface {
+	Search(string, string) ([]*domain.Expression, error)
 }
 
 type expressionHanlder struct {
@@ -13,17 +18,36 @@ type expressionHanlder struct {
 }
 
 func ConfigureExpressionHandler(ei ExpressionInteractor, r *mux.Router) {
-	// h := &expressionHanlder{
-	// 	BaseHanlder: BaseHanlder{
-	// 		router: r,
-	// 	},
-	// 	expressionInteractor: ei,
-	// }
+	h := &expressionHanlder{
+		BaseHanlder: BaseHanlder{
+			router: r,
+		},
+		expressionInteractor: ei,
+	}
 
-	// h.router.HandleFunc("/", h.CreateGroup()).Methods("POST")
+	h.router.
+		HandleFunc("/x", h.Search()).
+		Queries("lang", "{[a-z]{2}}").
+		Queries("search", "{.+}").
+		Methods("GET")
 	// h.router.HandleFunc("/me/group", h.ListGroups()).Methods("GET")
 	// h.router.HandleFunc("/me/group/{groupId}/slice", h.CreateSlice()).Methods("POST")
 	// h.router.HandleFunc("/me/group/{groupId}/slice", h.ListSlices()).Methods("GET")
+}
+
+func (i *expressionHanlder) Search() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		langCode := r.FormValue("lang")
+		searchValue := r.FormValue("search")
+
+		expressions, err := i.expressionInteractor.Search(langCode, searchValue)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, expressions, http.StatusOK)
+	}
 }
 
 // func (i *groupHanlder) CreateGroup() http.HandlerFunc {

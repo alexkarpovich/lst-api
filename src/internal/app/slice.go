@@ -40,6 +40,7 @@ type TextTranslation struct {
 type Correction struct {
 	Id        *valueobject.ID `json:"id" db:"id"`
 	AuthorId  *valueobject.ID `json:"author_id" db:"author_id"`
+	Title     string          `json:"title" db:"title"`
 	Content   string          `json:"content" db:"content"`
 	CreatedAt time.Time       `json:"createdAt" db:"created_at"`
 }
@@ -47,6 +48,7 @@ type Correction struct {
 type Text struct {
 	Id          *valueobject.ID  `json:"id" db:"id"`
 	AuthorId    *valueobject.ID  `json:"author_id" db:"author_id"`
+	Title       string           `json:"title" db:"title"`
 	Content     string           `json:"content" db:"content"`
 	Translation *TextTranslation `json:"translation"`
 	Corrections []*Correction    `json:"corrections"`
@@ -81,4 +83,6 @@ type SliceRepo interface {
 	DetachExpression(*valueobject.ID, *valueobject.ID) error
 	AttachTranslation(*valueobject.ID, *valueobject.ID, *Translation) (*Translation, error)
 	DetachTranslation(*valueobject.ID, *valueobject.ID) error
+	AttachText(*valueobject.ID, *Text) (*Text, error)
+	DetachText(*valueobject.ID, *valueobject.ID) error
 }

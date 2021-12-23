@@ -10,8 +10,7 @@ $$ LANGUAGE plpgsql;
 
 DROP TABLE IF EXISTS languages;
 CREATE TABLE languages (
-  id serial PRIMARY KEY,
-  code VARCHAR(2) UNIQUE NOT NULL,
+  code VARCHAR(2) PRIMARY KEY,
   iso_name VARCHAR(64) NOT NULL,
   native_name VARCHAR(64) NOT NULL
 );
@@ -37,16 +36,16 @@ FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
 DROP TABLE IF EXISTS groups;
 CREATE TABLE groups (
   id serial PRIMARY KEY,
-  target_lang_id INT NOT NULL,
-  native_lang_id INT NOT NULL,
+  target_lang VARCHAR(2) NOT NULL,
+  native_lang VARCHAR(2) NOT NULL,
   name VARCHAR(128) UNIQUE NOT NULL,
   status SMALLINT NOT NULL,
   CONSTRAINT fk_target_lang
-    FOREIGN KEY(target_lang_id) 
-    REFERENCES languages(id),
+    FOREIGN KEY(target_lang) 
+    REFERENCES languages(code),
   CONSTRAINT fk_native_lang
-    FOREIGN KEY(native_lang_id) 
-    REFERENCES languages(id)
+    FOREIGN KEY(native_lang) 
+    REFERENCES languages(code)
 );
 
 DROP TABLE IF EXISTS user_group;
@@ -65,10 +64,14 @@ CREATE TABLE user_group (
 DROP TABLE IF EXISTS slices;
 CREATE TABLE slices (
   id serial PRIMARY KEY,
+  text_id INT,
   name VARCHAR(64) NOT NULL,
   visibility SMALLINT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  CONSTRAINT fk_text
+    FOREIGN KEY(text_id) 
+    REFERENCES texts(id)
 );
 CREATE TRIGGER updated_at BEFORE UPDATE ON slices
 FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
@@ -84,12 +87,12 @@ CREATE TABLE object_types (
 DROP TABLE IF EXISTS expressions;
 CREATE TABLE expressions (
   id serial PRIMARY KEY,
-  lang_id INT NOT NULL,
+  lang VARCHAR(2) NOT NULL,
   value VARCHAR(128) NOT NULL,
   CONSTRAINT fk_lang
-    FOREIGN KEY(lang_id) 
-    REFERENCES languages(id),
-  UNIQUE(lang_id, value)
+    FOREIGN KEY(lang) 
+    REFERENCES languages(code),
+  UNIQUE(lang, value)
 );
 
 DROP TABLE IF EXISTS translations;
@@ -109,7 +112,7 @@ DROP TABLE IF EXISTS texts;
 CREATE TABLE texts (
   id serial PRIMARY KEY,
   origin_id INT,
-  lang_id INT NOT NULL,
+  lang VARCHAR(2) NOT NULL,
   author_id INT NOT NULL,
   title VARCHAR(128) NOT NULL,
   content TEXT NOT NULL,
@@ -118,8 +121,8 @@ CREATE TABLE texts (
     FOREIGN KEY(origin_id) 
     REFERENCES texts(id),
   CONSTRAINT fk_lang
-    FOREIGN KEY(lang_id) 
-    REFERENCES languages(id),
+    FOREIGN KEY(lang) 
+    REFERENCES languages(code),
   CONSTRAINT fk_author
     FOREIGN KEY(author_id) 
     REFERENCES users(id)
@@ -186,19 +189,6 @@ CREATE TABLE slice_translation (
     FOREIGN KEY(translation_id) 
     REFERENCES translations(id),
   UNIQUE(slice_id, translation_id)
-);
-
-DROP TABLE IF EXISTS slice_text;
-CREATE TABLE slice_text (
-  slice_id INT NOT NULL,
-  text_id INT NOT NULL,
-  CONSTRAINT fk_slice
-    FOREIGN KEY(slice_id) 
-    REFERENCES slices(id),
-  CONSTRAINT fk_text
-    FOREIGN KEY(text_id) 
-    REFERENCES texts(id),
-  UNIQUE(slice_id, text_id)
 );
 
 DROP TABLE IF EXISTS object_comment;
@@ -415,8 +405,8 @@ INSERT INTO users (id, email, username, encrypted_password, first_name, last_nam
 
 
 /* INITIALIZE GROUPS*/
-INSERT INTO groups (id, target_lang_id, native_lang_id, name, status) VALUES 
-  (1, 30, 134, 'Chinese', 0);
+INSERT INTO groups (id, target_lang, native_lang, name, status) VALUES 
+  (1, 'zh', 'ru', 'Chinese', 0);
 
 INSERT INTO user_group (user_id, group_id, role) VALUES
   (1, 1, 0),

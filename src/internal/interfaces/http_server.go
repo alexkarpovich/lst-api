@@ -15,12 +15,18 @@ import (
 
 func configureRouter(repos *repos.Repos) http.Handler {
 	baseRouter := mux.NewRouter().StrictSlash(true)
+
 	authInterector := usecases.NewAuthInteractor(repos.User)
 	app_handlers.ConfigureAuthHandler(authInterector, baseRouter)
+
 	groupInterector := usecases.NewGroupInteractor(repos.Group, repos.Slice)
 	app_handlers.ConfigureGroupHandler(groupInterector, baseRouter)
+
 	sliceInterector := usecases.NewSliceInteractor(repos.Slice, repos.Expression)
 	app_handlers.ConfigureSliceHandler(sliceInterector, baseRouter)
+
+	expressionInterector := usecases.NewExpressionInteractor(repos.Expression)
+	app_handlers.ConfigureExpressionHandler(expressionInterector, baseRouter)
 
 	return baseRouter
 }

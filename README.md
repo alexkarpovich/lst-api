@@ -16,13 +16,21 @@ Written in Golang using DDD approach.
 - Folder
 
 ### Use Cases
-- Save registrant (signup)
-- Save user (confirm-email)
-- Delete registrant (confirm-email)
-- Find user by email (login)
-- Get user by id
-- Save profile
-- Delete profile
+#### Auth:
+- Register user
+- Confirm registration
+#### Group
+- Create group
+    - Search users to invite
+- List groups
+- Update group name
+- Delete group
+- Attach users to a group
+- Send invitation to group link
+- Accept invitation to group
+- Reject invitation to group
+- Detach users from a group
+
 - List languages 
 - Save folder
 - Delete folder

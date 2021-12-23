@@ -2,7 +2,6 @@ DROP INDEX IF EXISTS path_idx;
 DROP INDEX IF EXISTS path_gist_idx;
 
 DROP TABLE IF EXISTS object_comment;
-DROP TABLE IF EXISTS slice_text;
 DROP TABLE IF EXISTS slice_translation;
 DROP TABLE IF EXISTS slice_expression;
 DROP TABLE IF EXISTS group_slice;
@@ -21,4 +20,5 @@ DROP EXTENSION IF EXISTS ltree;
 DROP TRIGGER IF EXISTS updated_at ON users;
 DROP TRIGGER IF EXISTS updated_at ON slices;
 DROP TRIGGER IF EXISTS updated_at ON comments;
+DROP TRIGGER IF EXISTS updated_at ON texts;
 DROP FUNCTION IF EXISTS trigger_set_timestamp;

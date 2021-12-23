@@ -20,8 +20,8 @@ func (r *GroupRepo) Create(obj *app.Group) (*app.Group, error) {
 	var id *valueobject.ID
 
 	stmt := `
-		INSERT INTO groups (name, target_lang_id, native_lang_id, status) 
-		VALUES(:name, :target_lang_id, :native_lang_id, :status)`
+		INSERT INTO groups (name, target_lang, native_lang, status) 
+		VALUES(:name, :target_lang, :native_lang, :status)`
 
 	rows, err := r.db.Db().NamedQuery(stmt, obj)
 

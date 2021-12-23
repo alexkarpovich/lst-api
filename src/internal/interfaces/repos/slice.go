@@ -201,8 +201,8 @@ func (r *SliceRepo) AttachExpression(sliceId *valueobject.ID, expression *app.Ex
 	tx, err := r.db.Db().Begin()
 
 	if expression.Id == nil {
-		query = `SELECT id FROM expressions WHERE value=$1 AND lang_id=$2`
-		err = tx.QueryRow(query, expression.Value, group.TargetLangId).
+		query = `SELECT id FROM expressions WHERE value=$1 AND lang=$2`
+		err = tx.QueryRow(query, expression.Value, group.TargetLangCode).
 			Scan(&expression.Id)
 		if err != nil {
 			if err != sql.ErrNoRows {
@@ -212,10 +212,10 @@ func (r *SliceRepo) AttachExpression(sliceId *valueobject.ID, expression *app.Ex
 
 		if expression.Id == nil {
 			query = `
-				INSERT INTO expressions (value, lang_id) VALUES($1, $2)
+				INSERT INTO expressions (value, lang) VALUES($1, $2)
 				RETURNING id
 			`
-			err = tx.QueryRow(query, expression.Value, group.TargetLangId).
+			err = tx.QueryRow(query, expression.Value, group.TargetLangCode).
 				Scan(&expression.Id)
 			if err != nil {
 				tx.Rollback()
@@ -294,8 +294,8 @@ func (r *SliceRepo) AttachTranslation(sliceId *valueobject.ID, expressionId *val
 	if translation.Id == nil {
 		var nativeId *valueobject.ID = nil
 
-		query = `SELECT id FROM expressions WHERE lang_id=$1 AND value=$2`
-		err = tx.QueryRow(query, group.NativeLangId, translation.Value).
+		query = `SELECT id FROM expressions WHERE lang=$1 AND value=$2`
+		err = tx.QueryRow(query, group.NativeLangCode, translation.Value).
 			Scan(&nativeId)
 		if err != nil {
 			if err != sql.ErrNoRows {
@@ -304,8 +304,8 @@ func (r *SliceRepo) AttachTranslation(sliceId *valueobject.ID, expressionId *val
 		}
 
 		if nativeId == nil {
-			query = `INSERT INTO expressions (lang_id, value) VALUES($1, $2) RETURNING id`
-			err := tx.QueryRow(query, group.NativeLangId, translation.Value).
+			query = `INSERT INTO expressions (lang, value) VALUES($1, $2) RETURNING id`
+			err := tx.QueryRow(query, group.NativeLangCode, translation.Value).
 				Scan(&nativeId)
 			if err != nil {
 				tx.Rollback()
@@ -362,6 +362,52 @@ func (r *SliceRepo) AttachTranslation(sliceId *valueobject.ID, expressionId *val
 func (r *SliceRepo) DetachTranslation(sliceId *valueobject.ID, translationId *valueobject.ID) error {
 	query := `DELETE FROM slice_translation WHERE slice_id=$1 AND translation_id=$2`
 	_, err := r.db.Db().Exec(query, sliceId, translationId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *SliceRepo) AttachText(sliceId *valueobject.ID, text *app.Text) (*app.Text, error) {
+	var err error
+	var query string
+
+	group, err := r.GetGroupBySlice(sliceId)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := r.db.Db().Begin()
+
+	if text.Id == nil {
+		query = `
+			INSERT INTO texts (author_id, title, content, lang) VALUES($1, $2, $3, $4)
+			RETURNING id, created_at
+		`
+		err = tx.QueryRow(query, text.AuthorId, text.Title, text.Content, group.TargetLangCode).
+			Scan(&text.Id, &text.CreatedAt)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
+
+	query = `UPDATE slices SET text_id=$1 WHERE id=$2`
+	_, err = tx.Exec(query, text.Id, sliceId)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	tx.Commit()
+
+	return text, nil
+}
+
+func (r *SliceRepo) DetachText(sliceId *valueobject.ID, textId *valueobject.ID) error {
+	query := `UPDATE slices SET text_id=NULL WHERE id=$1`
+	_, err := r.db.Db().Exec(query, sliceId)
 	if err != nil {
 		return err
 	}

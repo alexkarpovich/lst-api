@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -17,6 +18,8 @@ type SliceInteractor interface {
 	DetachExpression(*valueobject.ID, *valueobject.ID) error
 	AttachTranslation(*valueobject.ID, *valueobject.ID, *app.Translation) (*app.Translation, error)
 	DetachTranslation(*valueobject.ID, *valueobject.ID) error
+	AttachText(*valueobject.ID, *app.Text) (*app.Text, error)
+	DetachText(*valueobject.ID, *valueobject.ID) error
 }
 
 type sliceHanlder struct {
@@ -37,8 +40,8 @@ func ConfigureSliceHandler(fi SliceInteractor, r *mux.Router) {
 	h.router.HandleFunc("/me/slice/{sliceId}/detach-expression/{expressionId}", h.DetachExpression()).Methods("POST")
 	h.router.HandleFunc("/me/slice/{sliceId}/attach-translation", h.AttachTranslation()).Methods("POST")
 	h.router.HandleFunc("/me/slice/{sliceId}/detach-translation/{translationId}", h.DetachTranslation()).Methods("POST")
-	// h.router.HandleFunc("/me/profile", h.ProfileList()).Methods("GET")
-	// i.router.HandleFunc("/login", i.Login()).Methods("POST")
+	h.router.HandleFunc("/me/slice/{sliceId}/attach-text", h.AttachText()).Methods("POST")
+	h.router.HandleFunc("/me/slice/{sliceId}/detach-text/{textId}", h.DetachText()).Methods("POST")
 }
 
 func (i *sliceHanlder) Get() http.HandlerFunc {
@@ -195,6 +198,80 @@ func (i *sliceHanlder) DetachTranslation() http.HandlerFunc {
 		err = i.sliceInteractor.DetachTranslation(&sliceId, &translationId)
 		if err != nil {
 			utils.SendJsonError(w, "Detach expression error", http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, "Success", http.StatusOK)
+	}
+}
+
+func (i *sliceHanlder) AttachText() http.HandlerFunc {
+	type request struct {
+		Id      *valueobject.ID `json:"id"`
+		Title   string          `json:"title"`
+		Content string          `json:"content"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		var s request
+		var err error
+
+		vars := mux.Vars(r)
+		sliceIdArg, err := strconv.Atoi(vars["sliceId"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
+			return
+		}
+		sliceId := valueobject.ID(sliceIdArg)
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			log.Println("error slice create context")
+			return
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
+			utils.SendJsonError(w, "Invalid request data", http.StatusBadRequest)
+			return
+		}
+		text := &app.Text{
+			Id:       s.Id,
+			AuthorId: user.Id,
+			Title:    s.Title,
+			Content:  s.Content,
+		}
+
+		text, err = i.sliceInteractor.AttachText(&sliceId, text)
+		if err != nil {
+			utils.SendJsonError(w, "Attach text error", http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, text, http.StatusOK)
+	}
+}
+
+func (i *sliceHanlder) DetachText() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
+
+		vars := mux.Vars(r)
+		sliceIdArg, err := strconv.Atoi(vars["sliceId"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
+			return
+		}
+		textIdArg, err := strconv.Atoi(vars["textId"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid text id", http.StatusBadRequest)
+			return
+		}
+		sliceId := valueobject.ID(sliceIdArg)
+		textId := valueobject.ID(textIdArg)
+
+		err = i.sliceInteractor.DetachExpression(&sliceId, &textId)
+		if err != nil {
+			utils.SendJsonError(w, "Detach text error", http.StatusBadRequest)
 			return
 		}
 

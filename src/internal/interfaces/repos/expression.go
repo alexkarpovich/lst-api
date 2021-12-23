@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/alexkarpovich/lst-api/src/internal/domain"
-	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 	"github.com/alexkarpovich/lst-api/src/internal/interfaces/db"
 )
 
@@ -18,7 +17,7 @@ func NewExpressionRepo(db db.DB) *ExpressionRepo {
 
 func (r *ExpressionRepo) Create(obj *domain.Expression) (*domain.Expression, error) {
 	stmt := `
-		INSERT INTO expressions (lang_id, value) VALUES(:lang_id, :value)
+		INSERT INTO expressions (lang, value) VALUES(:lang, :value)
 		RETURNING id
 	`
 	rows, err := r.db.Db().NamedQuery(stmt, obj)
@@ -39,7 +38,7 @@ func (r *ExpressionRepo) Create(obj *domain.Expression) (*domain.Expression, err
 
 func (r *ExpressionRepo) Get(obj *domain.Expression) (*domain.Expression, error) {
 	var expression *domain.Expression
-	query := `SELECT * FROM expressions WHERE lang_id=:lang_id AND value=:value`
+	query := `SELECT * FROM expressions WHERE lang=:lang AND value=:value`
 	err := r.db.Db().Get(&expression, query, obj)
 	if err != nil {
 		return nil, err
@@ -48,11 +47,11 @@ func (r *ExpressionRepo) Get(obj *domain.Expression) (*domain.Expression, error)
 	return expression, nil
 }
 
-func (r *ExpressionRepo) Search(langId *valueobject.ID, value string) ([]*domain.Expression, error) {
+func (r *ExpressionRepo) Search(langCode string, value string) ([]*domain.Expression, error) {
 	var expressions []*domain.Expression
-	query := `SELECT * FROM expressions WHERE lang_id=$1 AND value LIKE '%$2%'`
+	query := `SELECT * FROM expressions WHERE lang=$1 AND value LIKE $2`
 
-	err := r.db.Db().Select(&expressions, query, langId, value)
+	err := r.db.Db().Select(&expressions, query, langCode, "%"+value+"%")
 	if err != nil {
 		return nil, err
 	}

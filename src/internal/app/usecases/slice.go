@@ -71,3 +71,21 @@ func (i *SliceInteractor) DetachTranslation(sliceId *valueobject.ID, translation
 
 	return nil
 }
+
+func (i *SliceInteractor) AttachText(sliceId *valueobject.ID, text *app.Text) (*app.Text, error) {
+	text, err := i.SliceRepo.AttachText(sliceId, text)
+	if err != nil {
+		return nil, err
+	}
+
+	return text, nil
+}
+
+func (i *SliceInteractor) DetachText(sliceId *valueobject.ID, textId *valueobject.ID) error {
+	err := i.SliceRepo.DetachText(sliceId, textId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -40,9 +40,9 @@ func ConfigureGroupHandler(pi GroupInteractor, r *mux.Router) {
 
 func (i *groupHanlder) CreateGroup() http.HandlerFunc {
 	type request struct {
-		Name         string          `json:"name"`
-		TargetLangId *valueobject.ID `json:"targetLangId"`
-		NativeLangId *valueobject.ID `json:"nativeLangId"`
+		Name           string `json:"name"`
+		TargetLangCode string `json:"targetLangCode"`
+		NativeLangCode string `json:"nativeLangCode"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -56,14 +56,14 @@ func (i *groupHanlder) CreateGroup() http.HandlerFunc {
 
 		user := utils.LoggedInUser(r)
 		if user == nil {
-			log.Println("error profile create context")
+			log.Println("error group create context")
 			return
 		}
 
 		group := &app.Group{
-			Name:         s.Name,
-			TargetLangId: s.TargetLangId,
-			NativeLangId: s.NativeLangId,
+			Name:           s.Name,
+			TargetLangCode: s.TargetLangCode,
+			NativeLangCode: s.NativeLangCode,
 		}
 
 		if group, err = i.groupInteractor.CreateGroup(group); err != nil {
@@ -123,7 +123,7 @@ func (i *groupHanlder) CreateSlice() http.HandlerFunc {
 
 		folder, err = i.groupInteractor.CreateSlice((*valueobject.ID)(&profileId), folder)
 		if err != nil {
-			utils.SendJsonError(w, "Create folder error", http.StatusBadRequest)
+			utils.SendJsonError(w, "Create slice error", http.StatusBadRequest)
 			return
 		}
 
@@ -136,14 +136,14 @@ func (i *groupHanlder) ListSlices() http.HandlerFunc {
 		vars := mux.Vars(r)
 		groupIdArg, err := strconv.Atoi(vars["groupId"])
 		if err != nil {
-			utils.SendJsonError(w, "Invalid profile id", http.StatusBadRequest)
+			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
 			return
 		}
 		groupId := valueobject.ID(groupIdArg)
 
 		slices, err := i.groupInteractor.ListSlices((*valueobject.ID)(&groupId))
 		if err != nil {
-			utils.SendJsonError(w, "List folder error", http.StatusBadRequest)
+			utils.SendJsonError(w, "List slice error", http.StatusBadRequest)
 			return
 		}
 
