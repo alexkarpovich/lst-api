@@ -57,6 +57,7 @@ type Text struct {
 
 type Slice struct {
 	Id          *valueobject.ID `json:"id" db:"id"`
+	TextId      *valueobject.ID `json:"textId" db:"text_id"`
 	Name        string          `json:"name" db:"name"`
 	Path        string          `json:"path" db:"path"`
 	Visibility  SliceVisibility `json:"visibility" db:"visibility"`

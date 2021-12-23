@@ -58,7 +58,7 @@ func (i *sliceHanlder) Get() http.HandlerFunc {
 
 		slice, err := i.sliceInteractor.Get(&sliceId)
 		if err != nil {
-			utils.SendJsonError(w, "Attach expression error", http.StatusBadRequest)
+			utils.SendJsonError(w, err, http.StatusBadRequest)
 			return
 		}
 

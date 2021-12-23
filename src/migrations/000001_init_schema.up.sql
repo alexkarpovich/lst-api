@@ -61,28 +61,11 @@ CREATE TABLE user_group (
     REFERENCES groups(id)
 );
 
-DROP TABLE IF EXISTS slices;
-CREATE TABLE slices (
-  id serial PRIMARY KEY,
-  text_id INT,
-  name VARCHAR(64) NOT NULL,
-  visibility SMALLINT NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  CONSTRAINT fk_text
-    FOREIGN KEY(text_id) 
-    REFERENCES texts(id)
-);
-CREATE TRIGGER updated_at BEFORE UPDATE ON slices
-FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
-
-
 DROP TABLE IF EXISTS object_types;
 CREATE TABLE object_types (
   id serial PRIMARY KEY,
   name VARCHAR(32) UNIQUE NOT NULL
 );
-
 
 DROP TABLE IF EXISTS expressions;
 CREATE TABLE expressions (
@@ -127,6 +110,22 @@ CREATE TABLE texts (
     FOREIGN KEY(author_id) 
     REFERENCES users(id)
 );
+
+DROP TABLE IF EXISTS slices;
+CREATE TABLE slices (
+  id serial PRIMARY KEY,
+  text_id INT,
+  name VARCHAR(64) NOT NULL,
+  visibility SMALLINT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  CONSTRAINT fk_text
+    FOREIGN KEY(text_id) 
+    REFERENCES texts(id)
+);
+CREATE TRIGGER updated_at BEFORE UPDATE ON slices
+FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
+
 
 DROP TABLE IF EXISTS comments;
 CREATE TABLE comments (
