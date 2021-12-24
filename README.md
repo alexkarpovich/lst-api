@@ -7,62 +7,56 @@ Written in Golang using DDD approach.
 - Language
 - Expression
 - Translation
+- Text
 
 ## Application
 ### Entities
 - User
-- Registrant
-- Profile
-- Folder
+- Group
+- Slice
+- Comment
 
 ### Use Cases
 #### Auth:
-- []Register user
-- []Confirm registration
-- []Log in
+- [x] Register user
+- [x] Confirm registration
+- [x] Log in
 
 #### Group
-- []Create group
-    - []Search languages
-    - []Search users to invite
-- []List groups
-- []Update group name
-- []Mark group as deleted
-- []Attach users to a group
-- []Send invitation to group link
-- []Accept invitation to group
-- []Reject invitation to group
-- []Detach users from a group
-- []Add slice to group
-- []Delete group slice
-- []List group slices
+- [x] Create group
+    - [ ] Search languages
+    - [ ] Search users to invite
+- [x] List groups
+- [ ] Update group name
+- [ ] Mark group as deleted
+- [ ] Attach users to a group
+- [ ] Send invitation to group link
+- [ ] Accept invitation to group
+- [ ] Reject invitation to group
+- [ ] Detach users from a group
+- [x] Add slice to group
+- [ ] Delete slice from group
+- [x] List group slices
 
 
 #### Slice
-- []Get slice
-- []Move slice
-- []Attach expression
-- []Detach expression
-- []Attach translation
-- []Detach translation
-- []Set text
-- []Unset text
-- List languages 
-- Save folder
-- Delete folder
-- Save expression
-- Delete expression
-- Attach expression to folder
-- Detach expression from folder
-- Save translation
-- Delete translation
-- Attach translation
-- Detach translation
+- [ ] Get slice
+- [ ] Move slice
+- [ ] Attach expression
+- [ ] Detach expression
+- [ ] Attach translation
+- [ ] Detach translation
+- [ ] Set text
+- [ ] Unset text
 
-#### Text Use Cases
-- Add public text:
-    - After publishing the text it cannot be modified if it has one or more comments/corrections ???
-    - Users can add corrections and comments
-    - Writer can select correction and apply it
-    - Approved text can be published globally and indexed.
+#### Expression
+- [ ] Get
+- [x] Search
+
+#### Text
+- [ ] Get
+- [ ] Search
+- [ ] Add correction
+- [ ] Accept correction
+- [ ] Check similarity of adding and existing texts to prevent duplicates
 
