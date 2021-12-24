@@ -1,9 +1,19 @@
 $PWD=$(shell pwd)
 
-.PHONY: create_migration apply_migration
+.PHONY: m
 
-create_migration:
-	migrate create -ext sql -dir $(PWD)/src/migrations -seq $(filter-out $@,$(MAKECMDGOALS))
+m:
+ifdef new
+	migrate create -ext sql -dir $(PWD)/src/migrations -seq $(new)
+else 
+	COMMAND = 'migrate -path src/migrations -database "postgres://postgres:postgres@0.0.0.0:5432/dev?sslmode=disable" '
+	ifdef up
+		COMMAND += 'up'
+	else ifdef down
+		COMMAND += 'down'
+	else ifdef force
+		COMMAND += 'force'
+	endif
 
-apply_migration:
-	migrate -path src/migrations -database "postgres://postgres:postgres@0.0.0.0:5432/dev?sslmode=disable" $(filter-out $@,$(MAKECMDGOALS))
+	$(COMMAND)
+endif

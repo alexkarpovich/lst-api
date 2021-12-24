@@ -17,20 +17,36 @@ Written in Golang using DDD approach.
 
 ### Use Cases
 #### Auth:
-- Register user
-- Confirm registration
-#### Group
-- Create group
-    - Search users to invite
-- List groups
-- Update group name
-- Delete group
-- Attach users to a group
-- Send invitation to group link
-- Accept invitation to group
-- Reject invitation to group
-- Detach users from a group
+- []Register user
+- []Confirm registration
+- []Log in
 
+#### Group
+- []Create group
+    - []Search languages
+    - []Search users to invite
+- []List groups
+- []Update group name
+- []Mark group as deleted
+- []Attach users to a group
+- []Send invitation to group link
+- []Accept invitation to group
+- []Reject invitation to group
+- []Detach users from a group
+- []Add slice to group
+- []Delete group slice
+- []List group slices
+
+
+#### Slice
+- []Get slice
+- []Move slice
+- []Attach expression
+- []Detach expression
+- []Attach translation
+- []Detach translation
+- []Set text
+- []Unset text
 - List languages 
 - Save folder
 - Delete folder
