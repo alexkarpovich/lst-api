@@ -7,6 +7,7 @@ import (
 
 	"github.com/alexkarpovich/lst-api/src/internal/app"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
+	"github.com/alexkarpovich/lst-api/src/internal/interfaces/email"
 	"github.com/alexkarpovich/lst-api/src/pkg"
 )
 
@@ -44,6 +45,8 @@ func (i *AuthInteractor) CreateRegistrant(r *Registrant) (*app.User, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	go email.SendSignup(registrant.Email, registrant.Token)
 
 	return registrant, nil
 }
