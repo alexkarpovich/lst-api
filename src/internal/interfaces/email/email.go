@@ -2,6 +2,7 @@ package email
 
 import (
 	"bytes"
+	"crypto/tls"
 	"html/template"
 	"os"
 	"strconv"
@@ -26,6 +27,8 @@ func Send(subject string, from string, recipients []string, body string) {
 		smtpPort,
 		os.Getenv("SMTP_USERNAME"),
 		os.Getenv("SMT_PASSWORD"))
+
+	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	if err := d.DialAndSend(m); err != nil {
 		panic(err)

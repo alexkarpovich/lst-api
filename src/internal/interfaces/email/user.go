@@ -16,8 +16,8 @@ func SendSignup(email valueobject.EmailAddress, token string) {
 		from,
 		[]string{string(email)},
 		[]string{
-			"./assets/email/templates/layout/base.html",
-			"./assets/email/templates/auth/signup.html",
+			"./assets/email/layout/base.html",
+			"./assets/email/auth/signup.html",
 		},
 		"layout",
 		data,
