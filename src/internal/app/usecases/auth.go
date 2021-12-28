@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/alexkarpovich/lst-api/src/internal/app"
+	"github.com/alexkarpovich/lst-api/src/internal/app/services"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
-	"github.com/alexkarpovich/lst-api/src/internal/interfaces/email"
 	"github.com/alexkarpovich/lst-api/src/pkg"
 )
 
@@ -22,11 +22,12 @@ type Registrant struct {
 }
 
 type AuthInteractor struct {
-	UserRepo app.UserRepo
+	UserRepo     app.UserRepo
+	EmailService services.EmailService
 }
 
-func NewAuthInteractor(ur app.UserRepo) *AuthInteractor {
-	return &AuthInteractor{ur}
+func NewAuthInteractor(ur app.UserRepo, es services.EmailService) *AuthInteractor {
+	return &AuthInteractor{ur, es}
 }
 
 func (i *AuthInteractor) CreateRegistrant(r *Registrant) (*app.User, error) {
@@ -46,7 +47,7 @@ func (i *AuthInteractor) CreateRegistrant(r *Registrant) (*app.User, error) {
 		return nil, err
 	}
 
-	go email.SendSignup(registrant.Email, registrant.Token)
+	go i.EmailService.SendSignup(registrant.Email, registrant.Token)
 
 	return registrant, nil
 }

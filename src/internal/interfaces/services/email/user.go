@@ -4,14 +4,14 @@ import (
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 )
 
-func SendSignup(email valueobject.EmailAddress, token string) {
+func (s *EmailService) SendSignup(email valueobject.EmailAddress, token string) error {
 	subject := "Подтверждение регистрации"
-	from := "alexsure.k@gmail.com"
+	from := "admin@akarpovich.com"
 
 	data := make(map[string]interface{})
 	data["Token"] = token
 
-	SendWithView(
+	return s.SendWithView(
 		subject,
 		from,
 		[]string{string(email)},

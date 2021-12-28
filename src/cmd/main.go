@@ -12,6 +12,7 @@ import (
 	"github.com/alexkarpovich/lst-api/src/internal/infrastructure"
 	"github.com/alexkarpovich/lst-api/src/internal/interfaces"
 	"github.com/alexkarpovich/lst-api/src/internal/interfaces/repos"
+	"github.com/alexkarpovich/lst-api/src/internal/interfaces/services"
 )
 
 func init() {
@@ -36,7 +37,9 @@ func main() {
 	serverAddress := fmt.Sprintf("%s:%s", os.Getenv("API_HOST"), os.Getenv("API_PORT"))
 	fmt.Printf("User API server listening %s", serverAddress)
 
-	srv, err := interfaces.NewHTTPServer(serverAddress, repos)
+	services := services.NewServices()
+
+	srv, err := interfaces.NewHTTPServer(serverAddress, repos, services)
 
 	if err != nil {
 		log.Fatal(err)

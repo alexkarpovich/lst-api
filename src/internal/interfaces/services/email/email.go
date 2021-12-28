@@ -4,13 +4,16 @@ import (
 	"bytes"
 	"crypto/tls"
 	"html/template"
+	"log"
 	"os"
 	"strconv"
 
 	"gopkg.in/gomail.v2"
 )
 
-func Send(subject string, from string, recipients []string, body string) {
+type EmailService struct{}
+
+func (s *EmailService) Send(subject string, from string, recipients []string, body string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", from)
 	m.SetHeader("To", recipients...)
@@ -19,7 +22,8 @@ func Send(subject string, from string, recipients []string, body string) {
 
 	smtpPort, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
+		return err
 	}
 
 	d := gomail.NewDialer(
@@ -28,23 +32,30 @@ func Send(subject string, from string, recipients []string, body string) {
 		os.Getenv("SMTP_USERNAME"),
 		os.Getenv("SMT_PASSWORD"))
 
-	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	d.TLSConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
 
 	if err := d.DialAndSend(m); err != nil {
-		panic(err)
+		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
-func SendWithView(subject string, from string, recipients []string, views []string, layout string, data interface{}) {
+func (s *EmailService) SendWithView(subject string, from string, recipients []string, views []string, layout string, data interface{}) error {
 	t, err := template.ParseFiles(views...)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
+		return err
 	}
 
 	var tpl bytes.Buffer
 	if err := t.ExecuteTemplate(&tpl, layout, data); err != nil {
-		panic(err)
+		log.Fatal(err)
+		return err
 	}
 
-	Send(subject, from, recipients, tpl.String())
+	return s.Send(subject, from, recipients, tpl.String())
 }
