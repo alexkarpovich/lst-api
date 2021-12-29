@@ -14,11 +14,9 @@ import (
 const tokenLength = 32
 
 type Registrant struct {
-	Username  string
-	Email     string
-	Password  string
-	FirstName string
-	LastName  string
+	Username string
+	Email    string
+	Password string
 }
 
 type AuthInteractor struct {
@@ -34,8 +32,6 @@ func (i *AuthInteractor) CreateRegistrant(r *Registrant) (*app.User, error) {
 	registrant := &app.User{
 		Email:          valueobject.EmailAddress(r.Email),
 		Username:       r.Username,
-		FirstName:      r.FirstName,
-		LastName:       r.LastName,
 		Token:          pkg.RandomString(tokenLength),
 		Status:         app.UserUnconfirmed,
 		TokenExpiresAt: time.Now().Add(12 * time.Hour).UTC(),

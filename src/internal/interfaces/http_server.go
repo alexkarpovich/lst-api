@@ -20,6 +20,9 @@ func configureRouter(repos *repos.Repos, services *services.Services) http.Handl
 	authInterector := usecases.NewAuthInteractor(repos.User, services.Email)
 	app_handlers.ConfigureAuthHandler(authInterector, baseRouter)
 
+	userInterector := usecases.NewUserInteractor(repos.User)
+	app_handlers.ConfigureUserHandler(userInterector, baseRouter)
+
 	groupInterector := usecases.NewGroupInteractor(repos.Group, repos.Slice)
 	app_handlers.ConfigureGroupHandler(groupInterector, baseRouter)
 

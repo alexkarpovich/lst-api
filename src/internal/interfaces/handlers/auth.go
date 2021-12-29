@@ -36,11 +36,9 @@ func ConfigureAuthHandler(ai AuthInteractor, r *mux.Router) {
 
 func (i *authHanlder) Signup() http.HandlerFunc {
 	type request struct {
-		Username  string `json:"username"`
-		Email     string `json:"email"`
-		Password  string `json:"password"`
-		FirstName string `json:"firstName"`
-		LastName  string `json:"lastName"`
+		Username string `json:"username"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -53,11 +51,9 @@ func (i *authHanlder) Signup() http.HandlerFunc {
 		defer r.Body.Close()
 
 		registrant := &usecases.Registrant{
-			Username:  s.Username,
-			Email:     s.Email,
-			Password:  s.Password,
-			FirstName: s.FirstName,
-			LastName:  s.LastName,
+			Username: s.Username,
+			Email:    s.Email,
+			Password: s.Password,
 		}
 
 		if _, err := i.authInteractor.CreateRegistrant(registrant); err != nil {

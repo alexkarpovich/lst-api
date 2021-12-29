@@ -30,7 +30,7 @@ func (s *EmailService) Send(subject string, from string, recipients []string, bo
 		os.Getenv("SMTP_HOST"),
 		smtpPort,
 		os.Getenv("SMTP_USERNAME"),
-		os.Getenv("SMT_PASSWORD"))
+		os.Getenv("SMTP_PASSWORD"))
 
 	d.TLSConfig = &tls.Config{
 		InsecureSkipVerify: true,
