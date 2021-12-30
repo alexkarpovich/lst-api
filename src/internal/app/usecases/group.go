@@ -48,8 +48,8 @@ func (i *GroupInteractor) MarkGroupAsDeleted(groupId *valueobject.ID) error {
 	return nil
 }
 
-func (i *GroupInteractor) AttachUser(groupId *valueobject.ID, userId *valueobject.ID, role app.UserRole) error {
-	err := i.GroupRepo.AttachUser(groupId, userId, role)
+func (i *GroupInteractor) AttachMember(groupId *valueobject.ID, userId *valueobject.ID, role app.UserRole) error {
+	err := i.GroupRepo.AttachMember(groupId, userId, role)
 	if err != nil {
 		log.Println(err)
 	}
@@ -57,8 +57,8 @@ func (i *GroupInteractor) AttachUser(groupId *valueobject.ID, userId *valueobjec
 	return nil
 }
 
-func (i *GroupInteractor) DetachUser(groupId *valueobject.ID, userId *valueobject.ID) error {
-	err := i.GroupRepo.DetachUser(groupId, userId)
+func (i *GroupInteractor) DetachMember(groupId *valueobject.ID, userId *valueobject.ID) error {
+	err := i.GroupRepo.DetachMember(groupId, userId)
 	if err != nil {
 		log.Println(err)
 	}
