@@ -12,6 +12,7 @@ import (
 
 type UserInteractor interface {
 	Get(*valueobject.ID) (*app.User, error)
+	FindByUsername(string) (*app.User, error)
 }
 
 type userHandler struct {
@@ -28,6 +29,7 @@ func ConfigureUserHandler(ui UserInteractor, r *mux.Router) {
 	}
 
 	h.router.HandleFunc("/me", h.Get()).Methods("GET")
+	h.router.HandleFunc("/users/{username:[a-zA-Z0..9]+}", h.FindByUsername()).Methods("GET")
 	// h.router.HandleFunc("/me/group", h.ListGroups()).Methods("GET")
 	// h.router.HandleFunc("/me/group/{groupId}/slice", h.CreateSlice()).Methods("POST")
 	// h.router.HandleFunc("/me/group/{groupId}/slice", h.ListSlices()).Methods("GET")
@@ -42,5 +44,26 @@ func (i *userHandler) Get() http.HandlerFunc {
 		}
 
 		utils.SendJson(w, user, http.StatusOK)
+	}
+}
+
+func (i *userHandler) FindByUsername() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		username := vars["username"]
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			utils.SendJsonError(w, "You don't have permissions.", http.StatusBadRequest)
+			return
+		}
+
+		usr, err := i.userInteractor.FindByUsername(username)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, usr, http.StatusOK)
 	}
 }

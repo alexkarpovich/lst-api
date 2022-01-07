@@ -13,11 +13,14 @@ import (
 )
 
 type GroupInteractor interface {
-	CreateGroup(*app.Group) (*app.Group, error)
+	CreateGroup(*valueobject.ID, *app.Group) (*app.Group, error)
+	UpdateGroup(*app.Group) error
 	ListGroups(*valueobject.ID) ([]*app.Group, error)
+	MarkGroupAsDeleted(*valueobject.ID, *valueobject.ID) error
 	CreateSlice(*valueobject.ID, *app.Slice) (*app.Slice, error)
 	ListSlices(*valueobject.ID) ([]*app.NestedSlice, error)
-	AttachMember(*valueobject.ID, *valueobject.ID, app.UserRole) error
+	InviteUser(*valueobject.ID, *valueobject.ID) error
+	ConfirmInvitation(*valueobject.ID, string) error
 	DetachMember(*valueobject.ID, *valueobject.ID) error
 }
 
@@ -36,9 +39,12 @@ func ConfigureGroupHandler(pi GroupInteractor, r *mux.Router) {
 
 	h.router.HandleFunc("/me/group", h.CreateGroup()).Methods("POST")
 	h.router.HandleFunc("/me/group", h.ListGroups()).Methods("GET")
+	h.router.HandleFunc("/me/group/confirm-invitation/{token}", h.ConfirmInvitation()).Methods("POST")
+	h.router.HandleFunc("/me/group/{groupId}", h.UpdateGroup()).Methods("POST")
+	h.router.HandleFunc("/me/group/{groupId}", h.DeleteGroup()).Methods("DELETE")
 	h.router.HandleFunc("/me/group/{groupId}/slice", h.CreateSlice()).Methods("POST")
 	h.router.HandleFunc("/me/group/{groupId}/slice", h.ListSlices()).Methods("GET")
-	h.router.HandleFunc("/me/group/{groupId}/attach-member", h.AttachMember()).Methods("POST")
+	h.router.HandleFunc("/me/group/{groupId}/invite-user/{userId}", h.InviteUser()).Methods("POST")
 	h.router.HandleFunc("/me/group/{groupId}/detach-member/{memberId}", h.DetachMember()).Methods("POST")
 }
 
@@ -70,12 +76,85 @@ func (i *groupHanlder) CreateGroup() http.HandlerFunc {
 			NativeLangCode: s.NativeLangCode,
 		}
 
-		if group, err = i.groupInteractor.CreateGroup(group); err != nil {
+		if group, err = i.groupInteractor.CreateGroup(user.Id, group); err != nil {
 			utils.SendJsonError(w, err, http.StatusBadRequest)
 			return
 		}
 
 		utils.SendJson(w, group, http.StatusOK)
+	}
+}
+
+func (i *groupHanlder) UpdateGroup() http.HandlerFunc {
+	type request struct {
+		Name           string `json:"name"`
+		TargetLangCode string `json:"targetLangCode"`
+		NativeLangCode string `json:"nativeLangCode"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		var s request
+		var err error
+
+		vars := mux.Vars(r)
+		groupIdArg, err := strconv.Atoi(vars["groupId"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
+			return
+		}
+		groupId := valueobject.ID(groupIdArg)
+
+		if err = json.NewDecoder(r.Body).Decode(&s); err != nil {
+			utils.SendJsonError(w, "Invalid request data", http.StatusBadRequest)
+			return
+		}
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			log.Println("error group update context")
+			return
+		}
+
+		group := &app.Group{
+			Id:             &groupId,
+			Name:           s.Name,
+			TargetLangCode: s.TargetLangCode,
+			NativeLangCode: s.NativeLangCode,
+		}
+
+		if err = i.groupInteractor.UpdateGroup(group); err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, "Success", http.StatusOK)
+	}
+}
+
+func (i *groupHanlder) DeleteGroup() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
+
+		vars := mux.Vars(r)
+		groupIdArg, err := strconv.Atoi(vars["groupId"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
+			return
+		}
+		groupId := valueobject.ID(groupIdArg)
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			log.Println("error group update context")
+			return
+		}
+
+		if err = i.groupInteractor.MarkGroupAsDeleted(user.Id, &groupId); err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, "Success", http.StatusOK)
 	}
 }
 
@@ -113,7 +192,7 @@ func (i *groupHanlder) CreateSlice() http.HandlerFunc {
 			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
 			return
 		}
-		profileId := valueobject.ID(groupIdArg)
+		groupId := valueobject.ID(groupIdArg)
 
 		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
 			utils.SendJsonError(w, "Invalid request data", http.StatusBadRequest)
@@ -125,7 +204,7 @@ func (i *groupHanlder) CreateSlice() http.HandlerFunc {
 			Path: s.ParentPath,
 		}
 
-		folder, err = i.groupInteractor.CreateSlice((*valueobject.ID)(&profileId), folder)
+		folder, err = i.groupInteractor.CreateSlice((*valueobject.ID)(&groupId), folder)
 		if err != nil {
 			utils.SendJsonError(w, "Create slice error", http.StatusBadRequest)
 			return
@@ -155,15 +234,8 @@ func (i *groupHanlder) ListSlices() http.HandlerFunc {
 	}
 }
 
-func (i *groupHanlder) AttachMember() http.HandlerFunc {
-	type request struct {
-		MemberId *valueobject.ID `json:"memberId"`
-		Role     app.UserRole    `json:"role"`
-	}
-
+func (i *groupHanlder) InviteUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var s request
-
 		vars := mux.Vars(r)
 		groupIdArg, err := strconv.Atoi(vars["groupId"])
 		if err != nil {
@@ -172,10 +244,12 @@ func (i *groupHanlder) AttachMember() http.HandlerFunc {
 		}
 		groupId := valueobject.ID(groupIdArg)
 
-		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
-			utils.SendJsonError(w, "Invalid request data", http.StatusBadRequest)
+		userIdArg, err := strconv.Atoi(vars["userId"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid user id", http.StatusBadRequest)
 			return
 		}
+		userId := valueobject.ID(userIdArg)
 
 		user := utils.LoggedInUser(r)
 		if user == nil {
@@ -183,7 +257,28 @@ func (i *groupHanlder) AttachMember() http.HandlerFunc {
 			return
 		}
 
-		err = i.groupInteractor.AttachMember(&groupId, s.MemberId, s.Role)
+		err = i.groupInteractor.InviteUser(&groupId, &userId)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, "Success", http.StatusOK)
+	}
+}
+
+func (i *groupHanlder) ConfirmInvitation() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		token := vars["token"]
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			utils.SendJsonError(w, "You don't have permissions to confirm invitation.", http.StatusBadRequest)
+			return
+		}
+
+		err := i.groupInteractor.ConfirmInvitation(user.Id, token)
 		if err != nil {
 			utils.SendJsonError(w, err, http.StatusBadRequest)
 			return

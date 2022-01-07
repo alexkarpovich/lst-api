@@ -27,6 +27,14 @@ const (
 	UserDeleted
 )
 
+type MemberStatus uint
+
+const (
+	MemberPending MemberStatus = iota
+	MemberActive
+	MemberDeleted
+)
+
 type User struct {
 	Id                *valueobject.ID          `json:"id" db:"id"`
 	Email             valueobject.EmailAddress `json:"email" db:"email"`
@@ -43,12 +51,13 @@ type User struct {
 }
 
 type UserRepo interface {
-	Create(obj *User) (*User, error)
-	Get(userId *valueobject.ID) (*User, error)
-	FindByEmail(emailAddress valueobject.EmailAddress) (*User, error)
-	FindByToken(token string) (*User, error)
-	Delete(userId *valueobject.ID) error
-	Update(obj *User) error
+	Create(*User) (*User, error)
+	Get(*valueobject.ID) (*User, error)
+	FindByUsername(string) (*User, error)
+	FindByEmail(valueobject.EmailAddress) (*User, error)
+	FindByToken(string) (*User, error)
+	Delete(*valueobject.ID) error
+	Update(*User) error
 }
 
 func (user *User) SetPassword(plainPassword string) {

@@ -23,7 +23,7 @@ func configureRouter(repos *repos.Repos, services *services.Services) http.Handl
 	userInterector := usecases.NewUserInteractor(repos.User)
 	app_handlers.ConfigureUserHandler(userInterector, baseRouter)
 
-	groupInterector := usecases.NewGroupInteractor(repos.Group, repos.Slice)
+	groupInterector := usecases.NewGroupInteractor(repos.Group, repos.Slice, repos.User, services.Email)
 	app_handlers.ConfigureGroupHandler(groupInterector, baseRouter)
 
 	sliceInterector := usecases.NewSliceInteractor(repos.Slice, repos.Expression)
@@ -31,6 +31,9 @@ func configureRouter(repos *repos.Repos, services *services.Services) http.Handl
 
 	expressionInterector := usecases.NewExpressionInteractor(repos.Expression)
 	app_handlers.ConfigureExpressionHandler(expressionInterector, baseRouter)
+
+	langInterector := usecases.NewLangInteractor(repos.Lang)
+	app_handlers.ConfigureLangHandler(langInterector, baseRouter)
 
 	return baseRouter
 }
@@ -48,7 +51,7 @@ func NewHTTPServer(address string, repos *repos.Repos, services *services.Servic
 
 	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
 	originsOk := handlers.AllowedOrigins([]string{"*"})
-	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "DELETE", "OPTIONS"})
 
 	chain := alice.New(
 		handlers.CORS(headersOk, originsOk, methodsOk),

@@ -11,6 +11,7 @@ type Repos struct {
 	Group      app.GroupRepo
 	Slice      app.SliceRepo
 	Expression domain.ExpressionRepo
+	Lang       domain.LangRepo
 }
 
 func NewRepos(db db.DB) *Repos {
@@ -19,5 +20,6 @@ func NewRepos(db db.DB) *Repos {
 		Group:      NewGroupRepo(db),
 		Slice:      NewSliceRepo(db),
 		Expression: NewExpressionRepo(db),
+		Lang:       NewLangRepo(db),
 	}
 }

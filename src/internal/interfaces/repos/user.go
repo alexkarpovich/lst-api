@@ -63,6 +63,18 @@ func (r *UserRepo) FindByEmail(email valueobject.EmailAddress) (*app.User, error
 	return user, nil
 }
 
+func (r *UserRepo) FindByUsername(username string) (*app.User, error) {
+	query := `SELECT * FROM users WHERE username=$1`
+	user := &app.User{}
+
+	if err := r.db.Db().Get(user, query, username); err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return user, nil
+}
+
 func (r *UserRepo) FindByToken(token string) (*app.User, error) {
 	stmt := `
 		SELECT * FROM users 
@@ -89,11 +101,13 @@ func (r *UserRepo) Delete(userId *valueobject.ID) error {
 }
 
 func (r *UserRepo) Update(obj *app.User) error {
-	stmt := `
-		UPDATE users SET username=:username, email=:email, encrypted_password=:encrypted_password, 
-						 first_name=:first_name, last_name=:last_name, status=:status`
-
-	if _, err := r.db.Db().NamedExec(stmt, obj); err != nil {
+	query := `
+		UPDATE users 
+		SET username=:username, email=:email, encrypted_password=:encrypted_password, 
+			first_name=:first_name, last_name=:last_name, status=:status
+		WHERE id=:id
+	`
+	if _, err := r.db.Db().NamedExec(query, obj); err != nil {
 		log.Println(err)
 		return err
 	}

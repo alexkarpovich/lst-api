@@ -1,8 +1,6 @@
 package repos
 
 import (
-	"log"
-
 	"github.com/alexkarpovich/lst-api/src/internal/app"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 	"github.com/alexkarpovich/lst-api/src/internal/interfaces/db"
@@ -16,57 +14,120 @@ func NewGroupRepo(db db.DB) *GroupRepo {
 	return &GroupRepo{db}
 }
 
-func (r *GroupRepo) Create(obj *app.Group) (*app.Group, error) {
-	var id *valueobject.ID
+func (r *GroupRepo) isGroupUntouched(groupId *valueobject.ID) (bool, error) {
+	var usersCount, slicesCount int
+	query := `
+		SELECT
+			(SELECT COUNT(user_id) FROM user_group WHERE group_id=$1) as users_count,
+			(SELECT coalesce(COUNT(slice_id), 0) FROM group_slice WHERE group_id=$1) as slices_count
+	`
+	err := r.db.Db().QueryRow(query, groupId).
+		Scan(&usersCount, &slicesCount)
+	if err != nil {
+		return false, err
+	}
 
-	stmt := `
-		INSERT INTO groups (name, target_lang, native_lang, status) 
-		VALUES(:name, :target_lang, :native_lang, :status)`
+	return usersCount == 1 && slicesCount == 0, nil
 
-	rows, err := r.db.Db().NamedQuery(stmt, obj)
+}
 
+func (r *GroupRepo) Create(userId *valueobject.ID, obj *app.Group) (*app.Group, error) {
+	tx, err := r.db.Db().Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	if rows.Next() {
-		rows.Scan(id)
+	query := `
+		INSERT INTO groups (name, target_lang, native_lang, status) 
+		VALUES($1, $2, $3, $4)
+		RETURNING id
+	`
+
+	err = tx.QueryRow(query, obj.Name, obj.TargetLangCode, obj.NativeLangCode, obj.Status).
+		Scan(&obj.Id)
+
+	if err != nil {
+		tx.Rollback()
+		return nil, err
 	}
 
-	if err = rows.Close(); err != nil {
-		// but what should we do if there's an error?
-		log.Println(err)
+	query = `INSERT INTO user_group (user_id, group_id, role, status) VALUES($1, $2, $3, $4)`
+
+	_, err = tx.Exec(query, userId, obj.Id, app.UserAdmin, app.MemberActive)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
 	}
 
-	obj.Id = id
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
 
 	return obj, nil
 }
 
+func (r *GroupRepo) Update(obj *app.Group) error {
+	var query string
+	var err error
+
+	isUntouched, err := r.isGroupUntouched(obj.Id)
+	if err != nil {
+		return err
+	}
+	if isUntouched {
+		query = `UPDATE groups SET name=$1, target_lang=$2, native_lang=$3 WHERE id=$4`
+
+		_, err = r.db.Db().Exec(query, obj.Name, obj.TargetLangCode, obj.NativeLangCode, obj.Id)
+	} else {
+		query = `UPDATE groups SET name=$1 WHERE id=$2`
+
+		_, err = r.db.Db().Exec(query, obj.Name, obj.Id)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *GroupRepo) List(userId *valueobject.ID) ([]*app.Group, error) {
 	query := `
-		SELECT g.* FROM groups g
+		SELECT 
+			g.*, 
+			(SELECT COUNT(user_id) FROM user_group WHERE group_id=g.id) as users_count,
+			(SELECT coalesce(COUNT(slice_id), 0) FROM group_slice WHERE group_id=g.id) as slices_count 
+		FROM groups g
 		LEFT JOIN user_group ug ON ug.group_id=g.id
-		WHERE user_id=$1
+		WHERE user_id=$1 AND g.status != $2
+		ORDER BY id DESC
 	`
-
 	groups := []*app.Group{}
 	groupMap := make(map[valueobject.ID]*app.Group)
-	rows, err := r.db.Db().Query(query, userId)
+	rows, err := r.db.Db().Query(query, userId, app.GroupDeleted)
 	if err != nil {
 		return nil, err
 	}
 
+	var usersCount, slicesCount uint
+
 	for rows.Next() {
 		group := &app.Group{}
-		rows.Scan(&group.Id, &group.TargetLangCode, &group.NativeLangCode, &group.Name, &group.Status)
+		rows.Scan(&group.Id, &group.TargetLangCode, &group.NativeLangCode, &group.Name, &group.Status, &usersCount, &slicesCount)
+
+		if usersCount == 1 || slicesCount == 0 {
+			group.IsUntouched = true
+		} else {
+			group.IsUntouched = false
+		}
 
 		groupMap[*group.Id] = group
 		groups = append(groups, group)
 	}
 
 	query = `
-		SELECT u.id, u.username, ug1.role, ug1.group_id FROM user_group ug
+		SELECT u.id, u.username, ug1.role, ug1.status, ug1.group_id FROM user_group ug
 		LEFT JOIN user_group ug1 ON ug1.group_id=ug.group_id
 		LEFT JOIN users u ON u.id=ug1.user_id
 		where ug.user_id=$1;
@@ -80,7 +141,7 @@ func (r *GroupRepo) List(userId *valueobject.ID) ([]*app.Group, error) {
 	for rows.Next() {
 		var groupId valueobject.ID
 		member := &app.GroupMember{}
-		rows.Scan(&member.Id, &member.Username, &member.Role, &groupId)
+		rows.Scan(&member.Id, &member.Username, &member.Role, &member.Status, &groupId)
 
 		if group, ok := groupMap[groupId]; ok {
 			group.Members = append(group.Members, member)
@@ -101,10 +162,30 @@ func (r *GroupRepo) MarkAsDeleted(groupId *valueobject.ID) error {
 	return nil
 }
 
-func (r *GroupRepo) AttachMember(groupId *valueobject.ID, userId *valueobject.ID, role app.UserRole) error {
-	stmt := `INSERT INTO user_group (group_id, user_id, role) VALUES ($1, $2, $3)`
+func (r *GroupRepo) FindMemberByToken(token string) (*valueobject.ID, *app.GroupMember, error) {
+	var groupId *valueobject.ID
 
-	_, err := r.db.Db().Exec(stmt, groupId, userId, role)
+	member := &app.GroupMember{}
+
+	query := `
+		SELECT group_id, user_id, role, status FROM user_group 
+		WHERE token=$1 AND status=$2 AND token_expires_at > NOW()
+	`
+	err := r.db.Db().QueryRow(query, token, app.MemberPending).
+		Scan(&groupId, &member.Id, &member.Role, &member.Status)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return groupId, member, nil
+}
+
+func (r *GroupRepo) AttachUser(groupId *valueobject.ID, member app.GroupMember) error {
+	query := `
+		INSERT INTO user_group (group_id, user_id, role, status, token, token_expires_at) 
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`
+	_, err := r.db.Db().Exec(query, groupId, member.Id, member.Role, member.Status, member.Token, member.TokenExpiresAt)
 	if err != nil {
 		return err
 	}
@@ -113,9 +194,23 @@ func (r *GroupRepo) AttachMember(groupId *valueobject.ID, userId *valueobject.ID
 }
 
 func (r *GroupRepo) DetachMember(groupId *valueobject.ID, userId *valueobject.ID) error {
-	stmt := `DELETE FROM user_group WHERE group_id=$1 AND user_id=$2`
+	query := `DELETE FROM user_group WHERE group_id=$1 AND user_id=$2`
 
-	_, err := r.db.Db().Exec(stmt, app.GroupDeleted, groupId, userId)
+	_, err := r.db.Db().Exec(query, groupId, userId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *GroupRepo) UpdateMember(groupId *valueobject.ID, member app.GroupMember) error {
+	query := `
+		UPDATE user_group SET role=$1, status=$2 
+		WHERE group_id=$3 AND user_id=$4	
+	`
+
+	_, err := r.db.Db().Exec(query, member.Role, member.Status, groupId, member.Id)
 	if err != nil {
 		return err
 	}

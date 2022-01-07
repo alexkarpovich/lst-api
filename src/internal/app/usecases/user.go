@@ -23,3 +23,12 @@ func (i *UserInteractor) Get(userId *valueobject.ID) (*app.User, error) {
 
 	return user, nil
 }
+
+func (i *UserInteractor) FindByUsername(username string) (*app.User, error) {
+	user, err := i.UserRepo.FindByUsername(username)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return user, nil
+}

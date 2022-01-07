@@ -39,14 +39,15 @@ CREATE TABLE groups (
   id serial PRIMARY KEY,
   target_lang VARCHAR(2) NOT NULL,
   native_lang VARCHAR(2) NOT NULL,
-  name VARCHAR(128) UNIQUE NOT NULL,
+  name VARCHAR(128) NOT NULL,
   status SMALLINT NOT NULL,
   CONSTRAINT fk_target_lang
     FOREIGN KEY(target_lang) 
     REFERENCES languages(code),
   CONSTRAINT fk_native_lang
     FOREIGN KEY(native_lang) 
-    REFERENCES languages(code)
+    REFERENCES languages(code),
+  UNIQUE(name, target_lang, native_lang)
 );
 
 DROP TABLE IF EXISTS user_group;
@@ -54,6 +55,9 @@ CREATE TABLE user_group (
   user_id INT NOT NULL,
   group_id INT NOT NULL,
   role SMALLINT NOT NULL,
+  token VARCHAR(128),
+  token_expires_at TIMESTAMP,
+  status SMALLINT NOT NULL,
   CONSTRAINT fk_user
     FOREIGN KEY(user_id) 
     REFERENCES users(id),
@@ -408,9 +412,9 @@ INSERT INTO users (id, email, username, encrypted_password, first_name, last_nam
 INSERT INTO groups (id, target_lang, native_lang, name, status) VALUES 
   (1, 'zh', 'ru', 'Chinese', 0);
 
-INSERT INTO user_group (user_id, group_id, role) VALUES
-  (1, 1, 0),
-  (2, 1, 0);
+INSERT INTO user_group (user_id, group_id, role, status) VALUES
+  (1, 1, 0, 1),
+  (2, 1, 2, 1);
 
 /* INITIALIZE SLICES */
 INSERT INTO slices (id, name, visibility) VALUES
