@@ -23,11 +23,11 @@ func NewGroupInteractor(gr app.GroupRepo, fr app.SliceRepo, ur app.UserRepo, es 
 	return &GroupInteractor{gr, fr, ur, es}
 }
 
-func (i *GroupInteractor) CreateGroup(admin *valueobject.ID, obj *app.Group) (*app.Group, error) {
+func (i *GroupInteractor) CreateGroup(actorId *valueobject.ID, obj *app.Group) (*app.Group, error) {
 	obj.Status = app.GroupActive
 	obj.Name = strings.TrimSpace(obj.Name)
 
-	group, err := i.GroupRepo.Create(admin, obj)
+	group, err := i.GroupRepo.Create(actorId, obj)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -36,10 +36,21 @@ func (i *GroupInteractor) CreateGroup(admin *valueobject.ID, obj *app.Group) (*a
 	return group, nil
 }
 
-func (i *GroupInteractor) UpdateGroup(obj *app.Group) error {
+func (i *GroupInteractor) UpdateGroup(actorId *valueobject.ID, obj *app.Group) error {
+	var err error
+
+	member, err := i.GroupRepo.FindMemberById(obj.Id, obj.Id)
+	if err != nil {
+		return err
+	}
+
+	if member.Role == app.UserReader {
+		return errors.New("Forbidden, only non-reader member can edit group.")
+	}
+
 	obj.Name = strings.TrimSpace(obj.Name)
 
-	err := i.GroupRepo.Update(obj)
+	err = i.GroupRepo.Update(obj)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -66,7 +77,18 @@ func (i *GroupInteractor) MarkGroupAsDeleted(userId *valueobject.ID, groupId *va
 	return nil
 }
 
-func (i *GroupInteractor) InviteUser(groupId *valueobject.ID, userId *valueobject.ID) error {
+func (i *GroupInteractor) InviteUser(actorId *valueobject.ID, groupId *valueobject.ID, userId *valueobject.ID) error {
+	var err error
+
+	actor, err := i.GroupRepo.FindMemberById(groupId, actorId)
+	if err != nil {
+		return err
+	}
+
+	if actor.Role != app.UserAdmin {
+		return errors.New("Forbidden, only admin can invite member.")
+	}
+
 	member := app.GroupMember{
 		Id:             userId,
 		Role:           app.UserReader,
@@ -75,7 +97,7 @@ func (i *GroupInteractor) InviteUser(groupId *valueobject.ID, userId *valueobjec
 		TokenExpiresAt: time.Now().Add(3 * 24 * time.Hour),
 	}
 
-	err := i.GroupRepo.AttachUser(groupId, member)
+	err = i.GroupRepo.AttachUser(groupId, member)
 	if err != nil {
 		log.Println(err)
 	}
@@ -112,6 +134,33 @@ func (i *GroupInteractor) ConfirmInvitation(userId *valueobject.ID, token string
 
 func (i *GroupInteractor) DetachMember(groupId *valueobject.ID, userId *valueobject.ID) error {
 	err := i.GroupRepo.DetachMember(groupId, userId)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return nil
+}
+
+func (i *GroupInteractor) UpdateMemberRole(actorId *valueobject.ID, groupId *valueobject.ID, member app.GroupMember) error {
+	var err error
+
+	actor, err := i.GroupRepo.FindMemberById(groupId, actorId)
+	if err != nil {
+		return err
+	}
+
+	if actor.Role != app.UserAdmin {
+		return errors.New("Forbidden, only admin of a group can change member roles.")
+	}
+
+	mbr, err := i.GroupRepo.FindMemberById(groupId, member.Id)
+	if err != nil {
+		return err
+	}
+
+	mbr.Role = member.Role
+
+	err = i.GroupRepo.UpdateMember(groupId, member)
 	if err != nil {
 		log.Println(err)
 	}

@@ -162,6 +162,24 @@ func (r *GroupRepo) MarkAsDeleted(groupId *valueobject.ID) error {
 	return nil
 }
 
+func (r *GroupRepo) FindMemberById(groupId *valueobject.ID, memberId *valueobject.ID) (*app.GroupMember, error) {
+	member := &app.GroupMember{
+		Id: memberId,
+	}
+
+	query := `
+		SELECT role, status FROM user_group 
+		WHERE group_id=$1 AND user_id=$2
+	`
+	err := r.db.Db().QueryRow(query, groupId, memberId).
+		Scan(&member.Role, &member.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	return member, nil
+}
+
 func (r *GroupRepo) FindMemberByToken(token string) (*valueobject.ID, *app.GroupMember, error) {
 	var groupId *valueobject.ID
 
