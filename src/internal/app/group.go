@@ -1,6 +1,9 @@
 package app
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
@@ -12,6 +15,23 @@ const (
 	GroupActive GroupStatus = iota
 	GroupDeleted
 )
+
+type GroupConfig struct {
+	NodeOrder []*valueobject.ID `json:"nodeOrder,omitempty"`
+}
+
+func (c GroupConfig) Value() (driver.Value, error) {
+	return json.Marshal(c)
+}
+
+func (c *GroupConfig) Scan(value interface{}) error {
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+
+	return json.Unmarshal(b, &c)
+}
 
 type GroupMember struct {
 	Id             *valueobject.ID `json:"id" db:"id"`
@@ -29,12 +49,13 @@ type Group struct {
 	Name           string          `json:"name" db:"name"`
 	Status         GroupStatus     `json:"status" db:"status"`
 	IsUntouched    bool            `json:"isUntouched"`
+	Config         *GroupConfig    `json:"config" db:"config"`
 	Members        []*GroupMember  `json:"members"`
 }
 
 type GroupRepo interface {
-	Create(*valueobject.ID, *Group) (*Group, error)
-	Update(*Group) error
+	Create(*valueobject.ID, Group) (*Group, error)
+	Update(Group) error
 	List(*valueobject.ID) ([]*Group, error)
 	MarkAsDeleted(*valueobject.ID) error
 	FindMemberById(*valueobject.ID, *valueobject.ID) (*GroupMember, error)

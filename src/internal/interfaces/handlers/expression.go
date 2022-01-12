@@ -128,7 +128,7 @@ func (i *expressionHanlder) Search() http.HandlerFunc {
 // 			return
 // 		}
 
-// 		folder := &app.Slice{
+// 		folder := &app.Node{
 // 			Name: s.Name,
 // 			Path: s.ParentPath,
 // 		}

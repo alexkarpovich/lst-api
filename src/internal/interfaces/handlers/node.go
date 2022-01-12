@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,51 +13,64 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type SliceInteractor interface {
-	Get(*valueobject.ID) (*app.Slice, error)
-	AttachExpression(*valueobject.ID, *app.Expression) (*app.Expression, error)
+type NodeInteractor interface {
+	Get(*valueobject.ID) (*app.Node, error)
+	View([]valueobject.ID) (*app.NodeView, error)
+	AttachExpression(*valueobject.ID, app.Expression) (*app.Expression, error)
 	DetachExpression(*valueobject.ID, *valueobject.ID) error
-	AttachTranslation(*valueobject.ID, *valueobject.ID, *app.Translation) (*app.Translation, error)
+	AttachTranslation(*valueobject.ID, *valueobject.ID, app.Translation) (*app.Translation, error)
 	DetachTranslation(*valueobject.ID, *valueobject.ID) error
-	AttachText(*valueobject.ID, *app.Text) (*app.Text, error)
+	AttachText(*valueobject.ID, app.Text) (*app.Text, error)
 	DetachText(*valueobject.ID, *valueobject.ID) error
 }
 
-type sliceHanlder struct {
+type nodeHandler struct {
 	BaseHanlder
-	sliceInteractor SliceInteractor
+	NodeInteractor NodeInteractor
 }
 
-func ConfigureSliceHandler(fi SliceInteractor, r *mux.Router) {
-	h := &sliceHanlder{
+func ConfigureNodeHandler(fi NodeInteractor, r *mux.Router) {
+	h := &nodeHandler{
 		BaseHanlder: BaseHanlder{
 			router: r,
 		},
-		sliceInteractor: fi,
+		NodeInteractor: fi,
 	}
 
-	h.router.HandleFunc("/me/slice/{sliceId}", h.Get()).Methods("GET")
-	h.router.HandleFunc("/me/slice/{sliceId}/attach-expression", h.AttachExpression()).Methods("POST")
-	h.router.HandleFunc("/me/slice/{sliceId}/detach-expression/{expressionId}", h.DetachExpression()).Methods("POST")
-	h.router.HandleFunc("/me/slice/{sliceId}/attach-translation", h.AttachTranslation()).Methods("POST")
-	h.router.HandleFunc("/me/slice/{sliceId}/detach-translation/{translationId}", h.DetachTranslation()).Methods("POST")
-	h.router.HandleFunc("/me/slice/{sliceId}/attach-text", h.AttachText()).Methods("POST")
-	h.router.HandleFunc("/me/slice/{sliceId}/detach-text/{textId}", h.DetachText()).Methods("POST")
+	h.router.HandleFunc("/me/nodes", h.View()).
+		Queries("ids", "{[0-9]+}").
+		Methods("GET")
+	h.router.HandleFunc("/me/nodes/{nodeId}", h.Get()).Methods("GET")
+	h.router.HandleFunc("/me/nodes/{nodeId}/attach-expression", h.AttachExpression()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{nodeId}/detach-expression/{expressionId}", h.DetachExpression()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{nodeId}/attach-translation", h.AttachTranslation()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{nodeId}/detach-translation/{translationId}", h.DetachTranslation()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{nodeId}/attach-text", h.AttachText()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{nodeId}/detach-text/{textId}", h.DetachText()).Methods("POST")
 }
 
-func (i *sliceHanlder) Get() http.HandlerFunc {
+func (i *nodeHandler) View() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
-		vars := mux.Vars(r)
-		sliceIdArg, err := strconv.Atoi(vars["sliceId"])
-		if err != nil {
-			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
+		queryParams := r.URL.Query()
+		ids := []valueobject.ID{}
+
+		for _, idStr := range queryParams.Get("ids") {
+			id, err := strconv.Atoi(string(idStr))
+			if err != nil {
+				utils.SendJsonError(w, err, http.StatusBadRequest)
+				return
+			}
+			ids = append(ids, valueobject.ID(id))
+		}
+
+		if len(ids) == 0 {
+			utils.SendJsonError(w, errors.New("No node ids specified."), http.StatusBadRequest)
 			return
 		}
-		sliceId := valueobject.ID(sliceIdArg)
 
-		slice, err := i.sliceInteractor.Get(&sliceId)
+		slice, err := i.NodeInteractor.View(ids)
 		if err != nil {
 			utils.SendJsonError(w, err, http.StatusBadRequest)
 			return
@@ -66,7 +80,29 @@ func (i *sliceHanlder) Get() http.HandlerFunc {
 	}
 }
 
-func (i *sliceHanlder) AttachExpression() http.HandlerFunc {
+func (i *nodeHandler) Get() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
+
+		vars := mux.Vars(r)
+		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
+			return
+		}
+		nodeId := valueobject.ID(nodeIdArg)
+
+		slice, err := i.NodeInteractor.Get(&nodeId)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, slice, http.StatusOK)
+	}
+}
+
+func (i *nodeHandler) AttachExpression() http.HandlerFunc {
 	type request struct {
 		Id    *valueobject.ID `json:"id"`
 		Value string          `json:"value"`
@@ -77,23 +113,23 @@ func (i *sliceHanlder) AttachExpression() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		sliceIdArg, err := strconv.Atoi(vars["sliceId"])
+		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid folder id", http.StatusBadRequest)
 			return
 		}
-		sliceId := valueobject.ID(sliceIdArg)
+		nodeId := valueobject.ID(nodeIdArg)
 
 		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
 			utils.SendJsonError(w, "Invalid request data", http.StatusBadRequest)
 			return
 		}
-		expression := &app.Expression{
+		inExpr := app.Expression{
 			Id:    s.Id,
 			Value: s.Value,
 		}
 
-		expression, err = i.sliceInteractor.AttachExpression(&sliceId, expression)
+		expression, err := i.NodeInteractor.AttachExpression(&nodeId, inExpr)
 		if err != nil {
 			utils.SendJsonError(w, "Attach expression error", http.StatusBadRequest)
 			return
@@ -103,12 +139,12 @@ func (i *sliceHanlder) AttachExpression() http.HandlerFunc {
 	}
 }
 
-func (i *sliceHanlder) DetachExpression() http.HandlerFunc {
+func (i *nodeHandler) DetachExpression() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
 		vars := mux.Vars(r)
-		sliceIdArg, err := strconv.Atoi(vars["sliceId"])
+		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid folder id", http.StatusBadRequest)
 			return
@@ -118,10 +154,10 @@ func (i *sliceHanlder) DetachExpression() http.HandlerFunc {
 			utils.SendJsonError(w, "Invalid expression id", http.StatusBadRequest)
 			return
 		}
-		sliceId := valueobject.ID(sliceIdArg)
+		nodeId := valueobject.ID(nodeIdArg)
 		expressionId := valueobject.ID(expressionIdArg)
 
-		err = i.sliceInteractor.DetachExpression(&sliceId, &expressionId)
+		err = i.NodeInteractor.DetachExpression(&nodeId, &expressionId)
 		if err != nil {
 			utils.SendJsonError(w, "Detach expression error", http.StatusBadRequest)
 			return
@@ -131,7 +167,7 @@ func (i *sliceHanlder) DetachExpression() http.HandlerFunc {
 	}
 }
 
-func (i *sliceHanlder) AttachTranslation() http.HandlerFunc {
+func (i *nodeHandler) AttachTranslation() http.HandlerFunc {
 	type translation struct {
 		Id             *valueobject.ID `json:"id"`
 		Value          string          `json:"value"`
@@ -148,26 +184,26 @@ func (i *sliceHanlder) AttachTranslation() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		sliceIdArg, err := strconv.Atoi(vars["sliceId"])
+		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
 			return
 		}
 
-		sliceId := valueobject.ID(sliceIdArg)
+		nodeId := valueobject.ID(nodeIdArg)
 
 		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
 			utils.SendJsonError(w, "Invalid request data", http.StatusBadRequest)
 			return
 		}
-		translation := &app.Translation{
+		inTranslation := app.Translation{
 			Id:             s.Translation.Id,
 			Transcriptions: s.Translation.Transcriptions,
 			Comment:        s.Translation.Comment,
 			Value:          s.Translation.Value,
 		}
 
-		translation, err = i.sliceInteractor.AttachTranslation(&sliceId, s.ExpressionId, translation)
+		translation, err := i.NodeInteractor.AttachTranslation(&nodeId, s.ExpressionId, inTranslation)
 		if err != nil {
 			utils.SendJsonError(w, "Attach translation error", http.StatusBadRequest)
 			return
@@ -177,12 +213,12 @@ func (i *sliceHanlder) AttachTranslation() http.HandlerFunc {
 	}
 }
 
-func (i *sliceHanlder) DetachTranslation() http.HandlerFunc {
+func (i *nodeHandler) DetachTranslation() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
 		vars := mux.Vars(r)
-		sliceIdArg, err := strconv.Atoi(vars["sliceId"])
+		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid folder id", http.StatusBadRequest)
 			return
@@ -192,10 +228,10 @@ func (i *sliceHanlder) DetachTranslation() http.HandlerFunc {
 			utils.SendJsonError(w, "Invalid translation id", http.StatusBadRequest)
 			return
 		}
-		sliceId := valueobject.ID(sliceIdArg)
+		nodeId := valueobject.ID(nodeIdArg)
 		translationId := valueobject.ID(translationIdArg)
 
-		err = i.sliceInteractor.DetachTranslation(&sliceId, &translationId)
+		err = i.NodeInteractor.DetachTranslation(&nodeId, &translationId)
 		if err != nil {
 			utils.SendJsonError(w, "Detach expression error", http.StatusBadRequest)
 			return
@@ -205,7 +241,7 @@ func (i *sliceHanlder) DetachTranslation() http.HandlerFunc {
 	}
 }
 
-func (i *sliceHanlder) AttachText() http.HandlerFunc {
+func (i *nodeHandler) AttachText() http.HandlerFunc {
 	type request struct {
 		Id      *valueobject.ID `json:"id"`
 		Title   string          `json:"title"`
@@ -217,12 +253,12 @@ func (i *sliceHanlder) AttachText() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		sliceIdArg, err := strconv.Atoi(vars["sliceId"])
+		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
 			return
 		}
-		sliceId := valueobject.ID(sliceIdArg)
+		nodeId := valueobject.ID(nodeIdArg)
 
 		user := utils.LoggedInUser(r)
 		if user == nil {
@@ -234,14 +270,14 @@ func (i *sliceHanlder) AttachText() http.HandlerFunc {
 			utils.SendJsonError(w, "Invalid request data", http.StatusBadRequest)
 			return
 		}
-		text := &app.Text{
+		inText := app.Text{
 			Id:       s.Id,
 			AuthorId: user.Id,
 			Title:    s.Title,
 			Content:  s.Content,
 		}
 
-		text, err = i.sliceInteractor.AttachText(&sliceId, text)
+		text, err := i.NodeInteractor.AttachText(&nodeId, inText)
 		if err != nil {
 			utils.SendJsonError(w, "Attach text error", http.StatusBadRequest)
 			return
@@ -251,12 +287,12 @@ func (i *sliceHanlder) AttachText() http.HandlerFunc {
 	}
 }
 
-func (i *sliceHanlder) DetachText() http.HandlerFunc {
+func (i *nodeHandler) DetachText() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
 		vars := mux.Vars(r)
-		sliceIdArg, err := strconv.Atoi(vars["sliceId"])
+		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
 			return
@@ -266,10 +302,10 @@ func (i *sliceHanlder) DetachText() http.HandlerFunc {
 			utils.SendJsonError(w, "Invalid text id", http.StatusBadRequest)
 			return
 		}
-		sliceId := valueobject.ID(sliceIdArg)
+		nodeId := valueobject.ID(nodeIdArg)
 		textId := valueobject.ID(textIdArg)
 
-		err = i.sliceInteractor.DetachExpression(&sliceId, &textId)
+		err = i.NodeInteractor.DetachExpression(&nodeId, &textId)
 		if err != nil {
 			utils.SendJsonError(w, "Detach text error", http.StatusBadRequest)
 			return

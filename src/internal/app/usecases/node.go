@@ -1,0 +1,100 @@
+package usecases
+
+import (
+	"log"
+
+	"github.com/alexkarpovich/lst-api/src/internal/app"
+	"github.com/alexkarpovich/lst-api/src/internal/domain"
+	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
+)
+
+type NodeInteractor struct {
+	NodeRepo       app.NodeRepo
+	ExpressionRepo domain.ExpressionRepo
+}
+
+func NewNodeInteractor(pr app.NodeRepo, er domain.ExpressionRepo) *NodeInteractor {
+	return &NodeInteractor{pr, er}
+}
+
+func (i *NodeInteractor) Create(groupId *valueobject.ID, s app.Node) (*app.Node, error) {
+	slice, err := i.NodeRepo.Create(groupId, s)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return slice, nil
+}
+
+func (i *NodeInteractor) Get(nodeId *valueobject.ID) (*app.Node, error) {
+	node, err := i.NodeRepo.Get(nodeId)
+	if err != nil {
+		return nil, err
+	}
+
+	return node, nil
+}
+
+func (i *NodeInteractor) View(ids []valueobject.ID) (*app.NodeView, error) {
+	nodesView, err := i.NodeRepo.View(ids)
+	if err != nil {
+		return nil, err
+	}
+
+	return nodesView, nil
+}
+
+func (i *NodeInteractor) AttachExpression(nodeId *valueobject.ID, inExpr app.Expression) (*app.Expression, error) {
+	expression, err := i.NodeRepo.AttachExpression(nodeId, inExpr)
+	if err != nil {
+		return nil, err
+	}
+
+	return expression, nil
+}
+
+func (i *NodeInteractor) DetachExpression(nodeId *valueobject.ID, expressionId *valueobject.ID) error {
+	err := i.NodeRepo.DetachExpression(nodeId, expressionId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *NodeInteractor) AttachTranslation(nodeId *valueobject.ID, expressionId *valueobject.ID, inTranslation app.Translation) (*app.Translation, error) {
+	translation, err := i.NodeRepo.AttachTranslation(nodeId, expressionId, inTranslation)
+	if err != nil {
+		return nil, err
+	}
+
+	return translation, nil
+}
+
+func (i *NodeInteractor) DetachTranslation(nodeId *valueobject.ID, translationId *valueobject.ID) error {
+	err := i.NodeRepo.DetachTranslation(nodeId, translationId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *NodeInteractor) AttachText(nodeId *valueobject.ID, inText app.Text) (*app.Text, error) {
+	text, err := i.NodeRepo.AttachText(nodeId, inText)
+	if err != nil {
+		return nil, err
+	}
+
+	return text, nil
+}
+
+func (i *NodeInteractor) DetachText(nodeId *valueobject.ID, textId *valueobject.ID) error {
+	err := i.NodeRepo.DetachText(nodeId, textId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

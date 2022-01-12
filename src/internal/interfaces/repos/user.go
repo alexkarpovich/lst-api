@@ -16,7 +16,7 @@ func NewUserRepo(db db.DB) *UserRepo {
 	return &UserRepo{db}
 }
 
-func (r *UserRepo) Create(obj *app.User) (*app.User, error) {
+func (r *UserRepo) Create(obj app.User) (*app.User, error) {
 	stmt := `
 		INSERT INTO users (username, email, encrypted_password, first_name, last_name, token, token_expires_at, status) 
 		VALUES(:username, :email, :encrypted_password, :first_name, :last_name, :token, :token_expires_at, :status)`
@@ -36,7 +36,7 @@ func (r *UserRepo) Create(obj *app.User) (*app.User, error) {
 		log.Println(err)
 	}
 
-	return obj, nil
+	return &obj, nil
 }
 
 func (r *UserRepo) Get(userId *valueobject.ID) (*app.User, error) {
@@ -100,7 +100,7 @@ func (r *UserRepo) Delete(userId *valueobject.ID) error {
 	return nil
 }
 
-func (r *UserRepo) Update(obj *app.User) error {
+func (r *UserRepo) Update(obj app.User) error {
 	query := `
 		UPDATE users 
 		SET username=:username, email=:email, encrypted_password=:encrypted_password, 

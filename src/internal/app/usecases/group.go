@@ -14,16 +14,16 @@ import (
 
 type GroupInteractor struct {
 	GroupRepo app.GroupRepo
-	SliceRepo app.SliceRepo
+	NodeRepo  app.NodeRepo
 	UserRepo  app.UserRepo
 	Email     services.EmailService
 }
 
-func NewGroupInteractor(gr app.GroupRepo, fr app.SliceRepo, ur app.UserRepo, es services.EmailService) *GroupInteractor {
+func NewGroupInteractor(gr app.GroupRepo, fr app.NodeRepo, ur app.UserRepo, es services.EmailService) *GroupInteractor {
 	return &GroupInteractor{gr, fr, ur, es}
 }
 
-func (i *GroupInteractor) CreateGroup(actorId *valueobject.ID, obj *app.Group) (*app.Group, error) {
+func (i *GroupInteractor) CreateGroup(actorId *valueobject.ID, obj app.Group) (*app.Group, error) {
 	obj.Status = app.GroupActive
 	obj.Name = strings.TrimSpace(obj.Name)
 
@@ -36,7 +36,7 @@ func (i *GroupInteractor) CreateGroup(actorId *valueobject.ID, obj *app.Group) (
 	return group, nil
 }
 
-func (i *GroupInteractor) UpdateGroup(actorId *valueobject.ID, obj *app.Group) error {
+func (i *GroupInteractor) UpdateGroup(actorId *valueobject.ID, obj app.Group) error {
 	var err error
 
 	member, err := i.GroupRepo.FindMemberById(obj.Id, obj.Id)
@@ -168,11 +168,11 @@ func (i *GroupInteractor) UpdateMemberRole(actorId *valueobject.ID, groupId *val
 	return nil
 }
 
-func (i *GroupInteractor) CreateSlice(groupId *valueobject.ID, s *app.Slice) (*app.Slice, error) {
-	s.Visibility = app.SlicePrivate
+func (i *GroupInteractor) CreateSlice(groupId *valueobject.ID, s app.Node) (*app.Node, error) {
+	s.Visibility = app.NodePrivate
 	s.Name = strings.TrimSpace(s.Name)
 
-	slice, err := i.SliceRepo.Create(groupId, s)
+	slice, err := i.NodeRepo.Create(groupId, s)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -181,8 +181,8 @@ func (i *GroupInteractor) CreateSlice(groupId *valueobject.ID, s *app.Slice) (*a
 	return slice, nil
 }
 
-func (i *GroupInteractor) ListSlices(groupId *valueobject.ID) ([]*app.NestedSlice, error) {
-	folders, err := i.SliceRepo.List(groupId)
+func (i *GroupInteractor) ListSlices(groupId *valueobject.ID) ([]*app.FlatNode, error) {
+	folders, err := i.NodeRepo.List(groupId)
 	if err != nil {
 		return nil, err
 	}

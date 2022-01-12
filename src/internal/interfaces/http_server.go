@@ -23,11 +23,11 @@ func configureRouter(repos *repos.Repos, services *services.Services) http.Handl
 	userInterector := usecases.NewUserInteractor(repos.User)
 	app_handlers.ConfigureUserHandler(userInterector, baseRouter)
 
-	groupInterector := usecases.NewGroupInteractor(repos.Group, repos.Slice, repos.User, services.Email)
+	groupInterector := usecases.NewGroupInteractor(repos.Group, repos.Node, repos.User, services.Email)
 	app_handlers.ConfigureGroupHandler(groupInterector, baseRouter)
 
-	sliceInterector := usecases.NewSliceInteractor(repos.Slice, repos.Expression)
-	app_handlers.ConfigureSliceHandler(sliceInterector, baseRouter)
+	nodeInterector := usecases.NewNodeInteractor(repos.Node, repos.Expression)
+	app_handlers.ConfigureNodeHandler(nodeInterector, baseRouter)
 
 	expressionInterector := usecases.NewExpressionInteractor(repos.Expression)
 	app_handlers.ConfigureExpressionHandler(expressionInterector, baseRouter)

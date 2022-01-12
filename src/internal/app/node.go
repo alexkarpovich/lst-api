@@ -6,14 +6,21 @@ import (
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 )
 
-// FolderVisibility allow/deny users to use this folder
-type SliceVisibility uint
+// NodeVisibility allow/deny users to use this node
+type NodeVisibility uint
 
 const (
-	// SlicePublic allows share the slice with other users
-	SlicePublic SliceVisibility = iota
-	// SlicePrivate deny share the slice
-	SlicePrivate
+	// NodePublic allows share the node with other users
+	NodePublic NodeVisibility = iota
+	// NodePrivate deny share the node
+	NodePrivate
+)
+
+type NodeType uint
+
+const (
+	NodeFolder NodeType = iota
+	NodeSlice
 )
 
 type Expression struct {
@@ -55,35 +62,42 @@ type Text struct {
 	CreatedAt   time.Time        `json:"createdAt" db:"created_at"`
 }
 
-type Slice struct {
+type Node struct {
 	Id          *valueobject.ID `json:"id" db:"id"`
 	TextId      *valueobject.ID `json:"textId" db:"text_id"`
+	Type        NodeType        `json:"type" db:"type"`
 	Name        string          `json:"name" db:"name"`
 	Path        string          `json:"path" db:"path"`
-	Visibility  SliceVisibility `json:"visibility" db:"visibility"`
+	Visibility  NodeVisibility  `json:"visibility" db:"visibility"`
 	Text        *Text           `json:"text" db:"text"`
 	Expressions []*Expression   `json:"expressions"`
 	CreatedAt   time.Time       `json:"createdAt" db:"created_at"`
 	UpdatedAt   time.Time       `json:"updatedAt" db:"updated_at"`
 }
 
-type NestedSlice struct {
+type NodeView struct {
+	Expressions []*Expression `json:"expressions"`
+}
+
+type FlatNode struct {
 	Id         *valueobject.ID `json:"id" db:"id"`
+	Type       NodeType        `json:"type" db:"type"`
 	Name       string          `json:"name" db:"name"`
 	Path       string          `json:"path" db:"path"`
 	Count      uint            `json:"count" db:"count"`
-	Visibility SliceVisibility `json:"visibility" db:"visibility"`
-	Children   []*NestedSlice  `json:"children"`
+	Visibility NodeVisibility  `json:"visibility" db:"visibility"`
+	Children   []*FlatNode     `json:"children"`
 }
 
-type SliceRepo interface {
-	Create(*valueobject.ID, *Slice) (*Slice, error)
-	Get(*valueobject.ID) (*Slice, error)
-	List(*valueobject.ID) ([]*NestedSlice, error)
-	AttachExpression(*valueobject.ID, *Expression) (*Expression, error)
+type NodeRepo interface {
+	Create(*valueobject.ID, Node) (*Node, error)
+	Get(*valueobject.ID) (*Node, error)
+	View([]valueobject.ID) (*NodeView, error)
+	List(*valueobject.ID) ([]*FlatNode, error)
+	AttachExpression(*valueobject.ID, Expression) (*Expression, error)
 	DetachExpression(*valueobject.ID, *valueobject.ID) error
-	AttachTranslation(*valueobject.ID, *valueobject.ID, *Translation) (*Translation, error)
+	AttachTranslation(*valueobject.ID, *valueobject.ID, Translation) (*Translation, error)
 	DetachTranslation(*valueobject.ID, *valueobject.ID) error
-	AttachText(*valueobject.ID, *Text) (*Text, error)
+	AttachText(*valueobject.ID, Text) (*Text, error)
 	DetachText(*valueobject.ID, *valueobject.ID) error
 }

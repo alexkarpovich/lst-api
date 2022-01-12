@@ -13,12 +13,12 @@ import (
 )
 
 type GroupInteractor interface {
-	CreateGroup(*valueobject.ID, *app.Group) (*app.Group, error)
-	UpdateGroup(*valueobject.ID, *app.Group) error
+	CreateGroup(*valueobject.ID, app.Group) (*app.Group, error)
+	UpdateGroup(*valueobject.ID, app.Group) error
 	ListGroups(*valueobject.ID) ([]*app.Group, error)
 	MarkGroupAsDeleted(*valueobject.ID, *valueobject.ID) error
-	CreateSlice(*valueobject.ID, *app.Slice) (*app.Slice, error)
-	ListSlices(*valueobject.ID) ([]*app.NestedSlice, error)
+	CreateSlice(*valueobject.ID, app.Node) (*app.Node, error)
+	ListSlices(*valueobject.ID) ([]*app.FlatNode, error)
 	InviteUser(*valueobject.ID, *valueobject.ID, *valueobject.ID) error
 	ConfirmInvitation(*valueobject.ID, string) error
 	DetachMember(*valueobject.ID, *valueobject.ID) error
@@ -38,16 +38,16 @@ func ConfigureGroupHandler(pi GroupInteractor, r *mux.Router) {
 		groupInteractor: pi,
 	}
 
-	h.router.HandleFunc("/me/group", h.CreateGroup()).Methods("POST")
-	h.router.HandleFunc("/me/group", h.ListGroups()).Methods("GET")
-	h.router.HandleFunc("/me/group/confirm-invitation/{token}", h.ConfirmInvitation()).Methods("POST")
-	h.router.HandleFunc("/me/group/{groupId}", h.UpdateGroup()).Methods("POST")
-	h.router.HandleFunc("/me/group/{groupId}", h.DeleteGroup()).Methods("DELETE")
-	h.router.HandleFunc("/me/group/{groupId}/slice", h.CreateSlice()).Methods("POST")
-	h.router.HandleFunc("/me/group/{groupId}/slice", h.ListSlices()).Methods("GET")
-	h.router.HandleFunc("/me/group/{groupId}/invite-user/{userId}", h.InviteUser()).Methods("POST")
-	h.router.HandleFunc("/me/group/{groupId}/detach-member/{memberId}", h.DetachMember()).Methods("POST")
-	h.router.HandleFunc("/me/group/{groupId}/update-role", h.UpdateMemberRole()).Methods("POST")
+	h.router.HandleFunc("/me/groups", h.CreateGroup()).Methods("POST")
+	h.router.HandleFunc("/me/groups", h.ListGroups()).Methods("GET")
+	h.router.HandleFunc("/me/groups/confirm-invitation/{token}", h.ConfirmInvitation()).Methods("POST")
+	h.router.HandleFunc("/me/groups/{groupId}", h.UpdateGroup()).Methods("POST")
+	h.router.HandleFunc("/me/groups/{groupId}", h.DeleteGroup()).Methods("DELETE")
+	h.router.HandleFunc("/me/groups/{groupId}/nodes", h.CreateSlice()).Methods("POST")
+	h.router.HandleFunc("/me/groups/{groupId}/nodes", h.ListSlices()).Methods("GET")
+	h.router.HandleFunc("/me/groups/{groupId}/invite-user/{userId}", h.InviteUser()).Methods("POST")
+	h.router.HandleFunc("/me/groups/{groupId}/detach-member/{memberId}", h.DetachMember()).Methods("POST")
+	h.router.HandleFunc("/me/groups/{groupId}/update-role", h.UpdateMemberRole()).Methods("POST")
 }
 
 func (i *groupHanlder) CreateGroup() http.HandlerFunc {
@@ -72,13 +72,14 @@ func (i *groupHanlder) CreateGroup() http.HandlerFunc {
 			return
 		}
 
-		group := &app.Group{
+		inGroup := app.Group{
 			Name:           s.Name,
 			TargetLangCode: s.TargetLangCode,
 			NativeLangCode: s.NativeLangCode,
 		}
 
-		if group, err = i.groupInteractor.CreateGroup(user.Id, group); err != nil {
+		group, err := i.groupInteractor.CreateGroup(user.Id, inGroup)
+		if err != nil {
 			utils.SendJsonError(w, err, http.StatusBadRequest)
 			return
 		}
@@ -117,14 +118,14 @@ func (i *groupHanlder) UpdateGroup() http.HandlerFunc {
 			return
 		}
 
-		group := &app.Group{
+		inGroup := app.Group{
 			Id:             &groupId,
 			Name:           s.Name,
 			TargetLangCode: s.TargetLangCode,
 			NativeLangCode: s.NativeLangCode,
 		}
 
-		if err = i.groupInteractor.UpdateGroup(user.Id, group); err != nil {
+		if err = i.groupInteractor.UpdateGroup(user.Id, inGroup); err != nil {
 			utils.SendJsonError(w, err, http.StatusBadRequest)
 			return
 		}
@@ -180,8 +181,9 @@ func (i *groupHanlder) ListGroups() http.HandlerFunc {
 
 func (i *groupHanlder) CreateSlice() http.HandlerFunc {
 	type request struct {
-		Name       string `json:"name"`
-		ParentPath string `json:"parentPath"`
+		Type       app.NodeType `json:"type"`
+		Name       string       `json:"name"`
+		ParentPath string       `json:"parentPath"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -201,18 +203,19 @@ func (i *groupHanlder) CreateSlice() http.HandlerFunc {
 			return
 		}
 
-		folder := &app.Slice{
+		inNode := app.Node{
+			Type: s.Type,
 			Name: s.Name,
 			Path: s.ParentPath,
 		}
 
-		folder, err = i.groupInteractor.CreateSlice((*valueobject.ID)(&groupId), folder)
+		node, err := i.groupInteractor.CreateSlice((*valueobject.ID)(&groupId), inNode)
 		if err != nil {
 			utils.SendJsonError(w, "Create slice error", http.StatusBadRequest)
 			return
 		}
 
-		utils.SendJson(w, folder, http.StatusOK)
+		utils.SendJson(w, node, http.StatusOK)
 	}
 }
 

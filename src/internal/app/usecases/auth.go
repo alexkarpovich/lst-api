@@ -29,16 +29,16 @@ func NewAuthInteractor(ur app.UserRepo, es services.EmailService) *AuthInteracto
 }
 
 func (i *AuthInteractor) CreateRegistrant(r *Registrant) (*app.User, error) {
-	registrant := &app.User{
+	inRegistrant := app.User{
 		Email:          valueobject.EmailAddress(r.Email),
 		Username:       r.Username,
 		Token:          pkg.RandomString(tokenLength),
 		Status:         app.UserUnconfirmed,
 		TokenExpiresAt: time.Now().Add(12 * time.Hour).UTC(),
 	}
-	registrant.SetPassword(r.Password)
+	inRegistrant.SetPassword(r.Password)
 
-	registrant, err := i.UserRepo.Create(registrant)
+	registrant, err := i.UserRepo.Create(inRegistrant)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (i *AuthInteractor) ConfirmEmail(token string) error {
 
 	registrant.Status = app.UserActive
 
-	if err := i.UserRepo.Update(registrant); err != nil {
+	if err := i.UserRepo.Update(*registrant); err != nil {
 		log.Println(err)
 		return err
 	}

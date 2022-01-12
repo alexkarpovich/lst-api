@@ -31,7 +31,7 @@ func (r *GroupRepo) isGroupUntouched(groupId *valueobject.ID) (bool, error) {
 
 }
 
-func (r *GroupRepo) Create(userId *valueobject.ID, obj *app.Group) (*app.Group, error) {
+func (r *GroupRepo) Create(userId *valueobject.ID, obj app.Group) (*app.Group, error) {
 	tx, err := r.db.Db().Begin()
 	if err != nil {
 		return nil, err
@@ -64,10 +64,10 @@ func (r *GroupRepo) Create(userId *valueobject.ID, obj *app.Group) (*app.Group, 
 		return nil, err
 	}
 
-	return obj, nil
+	return &obj, nil
 }
 
-func (r *GroupRepo) Update(obj *app.Group) error {
+func (r *GroupRepo) Update(obj app.Group) error {
 	var query string
 	var err error
 
@@ -95,9 +95,9 @@ func (r *GroupRepo) Update(obj *app.Group) error {
 func (r *GroupRepo) List(userId *valueobject.ID) ([]*app.Group, error) {
 	query := `
 		SELECT 
-			g.*, 
+			g.id, g.target_lang, g.native_lang, g.name, g.status, g.config,
 			(SELECT COUNT(user_id) FROM user_group WHERE group_id=g.id) as users_count,
-			(SELECT coalesce(COUNT(slice_id), 0) FROM group_slice WHERE group_id=g.id) as slices_count 
+			(SELECT coalesce(COUNT(node_id), 0) FROM group_node WHERE group_id=g.id) as node_count 
 		FROM groups g
 		LEFT JOIN user_group ug ON ug.group_id=g.id
 		WHERE user_id=$1 AND g.status != $2
@@ -110,13 +110,13 @@ func (r *GroupRepo) List(userId *valueobject.ID) ([]*app.Group, error) {
 		return nil, err
 	}
 
-	var usersCount, slicesCount uint
+	var usersCount, nodesCount uint
 
 	for rows.Next() {
 		group := &app.Group{}
-		rows.Scan(&group.Id, &group.TargetLangCode, &group.NativeLangCode, &group.Name, &group.Status, &usersCount, &slicesCount)
+		rows.Scan(&group.Id, &group.TargetLangCode, &group.NativeLangCode, &group.Name, &group.Status, &group.Config, &usersCount, &nodesCount)
 
-		if usersCount == 1 || slicesCount == 0 {
+		if usersCount == 1 || nodesCount == 0 {
 			group.IsUntouched = true
 		} else {
 			group.IsUntouched = false

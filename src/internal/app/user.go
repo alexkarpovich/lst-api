@@ -51,13 +51,13 @@ type User struct {
 }
 
 type UserRepo interface {
-	Create(*User) (*User, error)
+	Create(User) (*User, error)
 	Get(*valueobject.ID) (*User, error)
 	FindByUsername(string) (*User, error)
 	FindByEmail(valueobject.EmailAddress) (*User, error)
 	FindByToken(string) (*User, error)
 	Delete(*valueobject.ID) error
-	Update(*User) error
+	Update(User) error
 }
 
 func (user *User) SetPassword(plainPassword string) {

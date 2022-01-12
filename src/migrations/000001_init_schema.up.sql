@@ -40,6 +40,7 @@ CREATE TABLE groups (
   target_lang VARCHAR(2) NOT NULL,
   native_lang VARCHAR(2) NOT NULL,
   name VARCHAR(128) NOT NULL,
+  config jsonb,
   status SMALLINT NOT NULL,
   CONSTRAINT fk_target_lang
     FOREIGN KEY(target_lang) 
@@ -116,19 +117,16 @@ CREATE TABLE texts (
     REFERENCES users(id)
 );
 
-DROP TABLE IF EXISTS slices;
-CREATE TABLE slices (
+DROP TABLE IF EXISTS nodes;
+CREATE TABLE nodes (
   id serial PRIMARY KEY,
-  text_id INT,
+  type SMALLINT NOT NULL,
   name VARCHAR(64) NOT NULL,
   visibility SMALLINT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  CONSTRAINT fk_text
-    FOREIGN KEY(text_id) 
-    REFERENCES texts(id)
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
-CREATE TRIGGER updated_at BEFORE UPDATE ON slices
+CREATE TRIGGER updated_at BEFORE UPDATE ON nodes
 FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
 
 
@@ -151,48 +149,48 @@ CREATE TRIGGER updated_at BEFORE UPDATE ON comments
 FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
 
 
-DROP TABLE IF EXISTS group_slice;
-CREATE TABLE group_slice (
+DROP TABLE IF EXISTS group_node;
+CREATE TABLE group_node (
   group_id INT NOT NULL,
-  slice_id INT NOT NULL,
+  node_id INT NOT NULL,
   path ltree NOT NULL,
   CONSTRAINT fk_group
     FOREIGN KEY(group_id) 
     REFERENCES groups(id),
-  CONSTRAINT fk_slice
-    FOREIGN KEY(slice_id) 
-    REFERENCES slices(id)
+  CONSTRAINT fk_node
+    FOREIGN KEY(node_id) 
+    REFERENCES nodes(id)
 );
 
-CREATE INDEX path_gist_idx ON group_slice USING GIST (path);
-CREATE INDEX path_idx ON group_slice USING BTREE (path);
+CREATE INDEX path_gist_idx ON group_node USING GIST (path);
+CREATE INDEX path_idx ON group_node USING BTREE (path);
 
-DROP TABLE IF EXISTS slice_expression;
-CREATE TABLE slice_expression (
-  slice_id INT NOT NULL,
+DROP TABLE IF EXISTS node_expression;
+CREATE TABLE node_expression (
+  node_id INT NOT NULL,
   expression_id INT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  CONSTRAINT fk_slice
-    FOREIGN KEY(slice_id) 
-    REFERENCES slices(id),
+  CONSTRAINT fk_node
+    FOREIGN KEY(node_id) 
+    REFERENCES nodes(id),
   CONSTRAINT fk_expression
     FOREIGN KEY(expression_id) 
     REFERENCES expressions(id),
-  UNIQUE(slice_id, expression_id)
+  UNIQUE(node_id, expression_id)
 );
 
-DROP TABLE IF EXISTS slice_translation;
-CREATE TABLE slice_translation (
-  slice_id INT NOT NULL,
+DROP TABLE IF EXISTS node_translation;
+CREATE TABLE node_translation (
+  node_id INT NOT NULL,
   translation_id INT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_slice
-    FOREIGN KEY(slice_id) 
-    REFERENCES slices(id),
+  CONSTRAINT fk_node
+    FOREIGN KEY(node_id) 
+    REFERENCES nodes(id),
   CONSTRAINT fk_translation
     FOREIGN KEY(translation_id) 
     REFERENCES translations(id),
-  UNIQUE(slice_id, translation_id)
+  UNIQUE(node_id, translation_id)
 );
 
 DROP TABLE IF EXISTS object_comment;
@@ -417,15 +415,15 @@ INSERT INTO user_group (user_id, group_id, role, status) VALUES
   (2, 1, 2, 1);
 
 /* INITIALIZE SLICES */
-INSERT INTO slices (id, name, visibility) VALUES
-  (1, 'Slice 1', 1),
-  (2, 'Slice 2', 1),
-  (3, 'Slice 1.1', 1),
-  (4, 'Slice 1.2', 1),
-  (5, 'Slice 1.2.1', 1),
-  (6, 'Slice 1.2.2', 1);
+INSERT INTO nodes (id, type, name, visibility) VALUES
+  (1, 0, 'Folder 1', 1),
+  (2, 1, 'Slice 2', 1),
+  (3, 1, 'Slice 1.1', 1),
+  (4, 0, 'Folder 1.2', 1),
+  (5, 1, 'Slice 1.2.1', 1),
+  (6, 1, 'Slice 1.2.2', 1);
 
-INSERT INTO group_slice (group_id, slice_id, path) VALUES
+INSERT INTO group_node (group_id, node_id, path) VALUES
   (1, 1, ''),
   (1, 2, ''),
   (1, 3, '1'),
