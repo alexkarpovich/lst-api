@@ -225,10 +225,15 @@ func (r *NodeRepo) List(groupId *valueobject.ID) ([]*app.FlatNode, error) {
 	nodes := []*app.FlatNode{}
 
 	err := r.db.Db().Select(&nodes, `
-		SELECT id, type, name, visibility, (SELECT COUNT(expression_id) FROM node_expression ne WHERE concat(ne.node_id)::ltree @> gn.path) as count, gn.path as path FROM nodes n
+		SELECT id, type, name, visibility, (
+			SELECT COUNT(expression_id) FROM node_expression ne 
+			LEFT JOIN group_node cgn ON cgn.node_id=ne.node_id 
+			WHERE cgn.group_id=$1 AND (n.type=0 AND index(cgn.path, CASE WHEN gn.path='' THEN concat(gn.node_id) ELSE concat(gn.path,'.',gn.node_id) END::ltree) <> -1) OR (n.type=1 AND ne.node_id=n.id)
+			) as count, 
+			gn.path as path FROM nodes n
 		LEFT JOIN group_node gn ON gn.node_id=n.id
 		WHERE gn.group_id=$1
-		GROUP BY n.id, gn.path
+		GROUP BY n.id, gn.node_id, gn.path
 		ORDER BY gn.path
 	`, groupId)
 
