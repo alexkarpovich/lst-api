@@ -145,11 +145,12 @@ func (r *NodeRepo) View(ids []valueobject.ID) (*app.NodeView, error) {
 	var nodeView app.NodeView
 
 	query = `
-		SELECT t.id, t.target_id, e.value, t.comment, nt.created_at FROM translations t
+		SELECT t.id, t.target_id, e.value, t.comment, MAX(nt.created_at) created_at FROM translations t
 		LEFT JOIN node_translation nt ON nt.translation_id=t.id
 		LEFT JOIN expressions e ON e.id=t.native_id
 		WHERE nt.node_id IN (?)
-		ORDER BY nt.created_at DESC
+		GROUP BY t.id, e.value
+		ORDER BY created_at DESC
 	`
 	query, args, err := sqlx.In(query, ids)
 	query = r.db.Db().Rebind(query)
@@ -175,10 +176,11 @@ func (r *NodeRepo) View(ids []valueobject.ID) (*app.NodeView, error) {
 	expressions := []*app.Expression{}
 
 	query = `
-		SELECT e.id, e.value, ne.created_at FROM expressions e
+		SELECT e.id, e.value, MAX(ne.created_at) created_at FROM expressions e
 		LEFT JOIN node_expression ne ON ne.expression_id=e.id
 		WHERE ne.node_id IN (?)
-		ORDER BY ne.created_at DESC;
+		GROUP BY e.id
+		ORDER BY created_at DESC		
 	`
 
 	query, args, err = sqlx.In(query, ids)
@@ -226,7 +228,7 @@ func (r *NodeRepo) List(groupId *valueobject.ID) ([]*app.FlatNode, error) {
 
 	err := r.db.Db().Select(&nodes, `
 		SELECT id, type, name, visibility, (
-			SELECT COUNT(expression_id) FROM node_expression ne 
+			SELECT COUNT(DISTINCT expression_id) FROM node_expression ne 
 			LEFT JOIN group_node cgn ON cgn.node_id=ne.node_id 
 			WHERE cgn.group_id=$1 AND (n.type=0 AND index(cgn.path, CASE WHEN gn.path='' THEN concat(gn.node_id) ELSE concat(gn.path,'.',gn.node_id) END::ltree) <> -1) OR (n.type=1 AND ne.node_id=n.id)
 			) as count, 
@@ -303,12 +305,12 @@ func (r *NodeRepo) AttachExpression(nodeId *valueobject.ID, expression app.Expre
 	err = tx.QueryRow(query, nodeId, expression.Id).
 		Scan(&expression.CreatedAt)
 	if err != nil {
-		pqErr := err.(*pq.Error)
+		// pqErr := err.(*pq.Error)
 
-		// If relation slice-expression already exists then return success
-		if pqErr.Code == "23505" {
-			return &expression, nil
-		}
+		// // If relation slice-expression already exists then return success
+		// if pqErr.Code == "23505" {
+		// 	return &expression, nil
+		// }
 
 		tx.Rollback()
 		return nil, err

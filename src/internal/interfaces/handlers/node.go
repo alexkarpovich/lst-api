@@ -56,7 +56,7 @@ func (i *nodeHandler) View() http.HandlerFunc {
 		queryParams := r.URL.Query()
 		ids := []valueobject.ID{}
 
-		for _, idStr := range queryParams.Get("ids") {
+		for _, idStr := range queryParams["ids"] {
 			id, err := strconv.Atoi(string(idStr))
 			if err != nil {
 				utils.SendJsonError(w, err, http.StatusBadRequest)
