@@ -353,6 +353,34 @@ func (r *NodeRepo) DetachExpression(nodeId *valueobject.ID, expressionId *valueo
 	return nil
 }
 
+func (r *NodeRepo) AvailableTranslations(nodeId *valueobject.ID, expressionId *valueobject.ID) ([]*app.Translation, error) {
+	var query string
+	var err error
+
+	group, err := r.GetGroupByNode(nodeId)
+	if err != nil {
+		return nil, err
+	}
+
+	translations := []*app.Translation{}
+	query = `
+		SELECT t.id, e.value FROM translations t
+		LEFT JOIN expressions e ON e.id=t.native_id
+		WHERE t.target_id=$1 AND e.lang=$2 AND t.id NOT IN (
+			SELECT tr.id FROM node_translation ntr
+			LEFT JOIN translations tr ON tr.id=ntr.translation_id
+			WHERE tr.target_id=$1 AND ntr.node_id=$3
+		);
+	`
+
+	err = r.db.Db().Select(&translations, query, expressionId, group.NativeLangCode, nodeId)
+	if err != nil {
+		return nil, err
+	}
+
+	return translations, nil
+}
+
 func (r *NodeRepo) AttachTranslation(nodeId *valueobject.ID, expressionId *valueobject.ID, translation app.Translation) (*app.Translation, error) {
 	var query string
 	var err error

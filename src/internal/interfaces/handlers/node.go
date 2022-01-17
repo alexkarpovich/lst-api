@@ -18,6 +18,7 @@ type NodeInteractor interface {
 	View([]valueobject.ID) (*app.NodeView, error)
 	AttachExpression(*valueobject.ID, app.Expression) (*app.Expression, error)
 	DetachExpression(*valueobject.ID, *valueobject.ID) error
+	AvailableTranslations(*valueobject.ID, *valueobject.ID) ([]*app.Translation, error)
 	AttachTranslation(*valueobject.ID, *valueobject.ID, app.Translation) (*app.Translation, error)
 	DetachTranslation(*valueobject.ID, *valueobject.ID) error
 	AttachText(*valueobject.ID, app.Text) (*app.Text, error)
@@ -40,7 +41,10 @@ func ConfigureNodeHandler(fi NodeInteractor, r *mux.Router) {
 	h.router.HandleFunc("/me/nodes", h.View()).
 		Queries("ids", "{[0-9]+}").
 		Methods("GET")
-	h.router.HandleFunc("/me/nodes/{nodeId}", h.Get()).Methods("GET")
+	h.router.HandleFunc("/me/nodes/{node_id}", h.Get()).Methods("GET")
+	h.router.HandleFunc("/me/nodes/{nodeId}/translations", h.AvailableTranslations()).
+		Queries("expression_id", "{[0-9]+}").
+		Methods("GET")
 	h.router.HandleFunc("/me/nodes/{nodeId}/attach-expression", h.AttachExpression()).Methods("POST")
 	h.router.HandleFunc("/me/nodes/{nodeId}/detach-expression/{expressionId}", h.DetachExpression()).Methods("POST")
 	h.router.HandleFunc("/me/nodes/{nodeId}/attach-translation", h.AttachTranslation()).Methods("POST")
@@ -164,6 +168,36 @@ func (i *nodeHandler) DetachExpression() http.HandlerFunc {
 		}
 
 		utils.SendJson(w, "Success", http.StatusOK)
+	}
+}
+
+func (i *nodeHandler) AvailableTranslations() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
+
+		vars := mux.Vars(r)
+		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
+			return
+		}
+		nodeId := valueobject.ID(nodeIdArg)
+
+		queryParams := r.URL.Query()
+		expressionIdArg, err := strconv.Atoi(queryParams.Get("expression_id"))
+		if err != nil {
+			utils.SendJsonError(w, "Invalid expression id", http.StatusBadRequest)
+			return
+		}
+		expressionId := valueobject.ID(expressionIdArg)
+
+		translations, err := i.NodeInteractor.AvailableTranslations(&nodeId, &expressionId)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, translations, http.StatusOK)
 	}
 }
 

@@ -63,6 +63,15 @@ func (i *NodeInteractor) DetachExpression(nodeId *valueobject.ID, expressionId *
 	return nil
 }
 
+func (i *NodeInteractor) AvailableTranslations(nodeId *valueobject.ID, expressionId *valueobject.ID) ([]*app.Translation, error) {
+	translations, err := i.NodeRepo.AvailableTranslations(nodeId, expressionId)
+	if err != nil {
+		return nil, err
+	}
+
+	return translations, nil
+}
+
 func (i *NodeInteractor) AttachTranslation(nodeId *valueobject.ID, expressionId *valueobject.ID, inTranslation app.Translation) (*app.Translation, error) {
 	translation, err := i.NodeRepo.AttachTranslation(nodeId, expressionId, inTranslation)
 	if err != nil {
