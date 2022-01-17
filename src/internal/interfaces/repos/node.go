@@ -10,7 +10,6 @@ import (
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 	"github.com/alexkarpovich/lst-api/src/internal/interfaces/db"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 )
 
 type NodeRepo struct {
@@ -444,14 +443,25 @@ func (r *NodeRepo) AttachTranslation(nodeId *valueobject.ID, expressionId *value
 	err = tx.QueryRow(query, nodeId, translation.Id).
 		Scan(&translation.CreatedAt)
 	if err != nil {
-		pqErr := err.(*pq.Error)
+		// pqErr := err.(*pq.Error)
 
-		// If relation slice-expression already exists then return success
-		if pqErr.Code == "23505" {
-			return &translation, nil
-		}
+		// // If relation slice-expression already exists then return success
+		// if pqErr.Code == "23505" {
+		// 	return &translation, nil
+		// }
 
 		tx.Rollback()
+		return nil, err
+	}
+
+	query = `
+		SELECT e.value, t.comment FROM translations t
+		LEFT JOIN expressions e ON e.id=t.native_id
+		WHERE t.id=$1
+	`
+	err = tx.QueryRow(query, translation.Id).
+		Scan(&translation.Value, &translation.Comment)
+	if err != nil {
 		return nil, err
 	}
 

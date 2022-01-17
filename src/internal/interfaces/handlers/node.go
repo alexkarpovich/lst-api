@@ -178,7 +178,7 @@ func (i *nodeHandler) AvailableTranslations() http.HandlerFunc {
 		vars := mux.Vars(r)
 		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
 		if err != nil {
-			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
+			utils.SendJsonError(w, "Invalid node id", http.StatusBadRequest)
 			return
 		}
 		nodeId := valueobject.ID(nodeIdArg)
