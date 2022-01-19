@@ -1,7 +1,9 @@
 package usecases
 
 import (
+	"errors"
 	"log"
+	"strings"
 
 	"github.com/alexkarpovich/lst-api/src/internal/app"
 	"github.com/alexkarpovich/lst-api/src/internal/domain"
@@ -46,6 +48,14 @@ func (i *NodeInteractor) View(ids []valueobject.ID) (*app.NodeView, error) {
 }
 
 func (i *NodeInteractor) AttachExpression(nodeId *valueobject.ID, inExpr app.Expression) (*app.Expression, error) {
+	if inExpr.Id == nil {
+		inExpr.Value = strings.TrimSpace(inExpr.Value)
+
+		if inExpr.Value == "" {
+			return nil, errors.New("You need to specify expression id or value.")
+		}
+	}
+
 	expression, err := i.NodeRepo.AttachExpression(nodeId, inExpr)
 	if err != nil {
 		return nil, err
@@ -73,6 +83,14 @@ func (i *NodeInteractor) AvailableTranslations(nodeId *valueobject.ID, expressio
 }
 
 func (i *NodeInteractor) AttachTranslation(nodeId *valueobject.ID, expressionId *valueobject.ID, inTranslation app.Translation) (*app.Translation, error) {
+	if inTranslation.Id == nil {
+		inTranslation.Value = strings.TrimSpace(inTranslation.Value)
+
+		if inTranslation.Value == "" {
+			return nil, errors.New("You need to specify translation id or value.")
+		}
+	}
+
 	translation, err := i.NodeRepo.AttachTranslation(nodeId, expressionId, inTranslation)
 	if err != nil {
 		return nil, err
