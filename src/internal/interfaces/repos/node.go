@@ -261,6 +261,22 @@ func (r *NodeRepo) List(groupId *valueobject.ID) ([]*app.FlatNode, error) {
 	return result, nil
 }
 
+func (r *NodeRepo) Update(obj app.FlatNode) error {
+	var query string
+
+	query = `
+		UPDATE nodes SET name=:name, visibility=:visibility
+		WHERE id=:id
+	`
+
+	_, err := r.db.Db().NamedExec(query, obj)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *NodeRepo) AttachExpression(nodeId *valueobject.ID, expression app.Expression) (*app.Expression, error) {
 	var err error
 	var query string

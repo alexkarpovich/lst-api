@@ -12,11 +12,12 @@ import (
 
 type NodeInteractor struct {
 	NodeRepo       app.NodeRepo
+	GroupRepo      app.GroupRepo
 	ExpressionRepo domain.ExpressionRepo
 }
 
-func NewNodeInteractor(pr app.NodeRepo, er domain.ExpressionRepo) *NodeInteractor {
-	return &NodeInteractor{pr, er}
+func NewNodeInteractor(pr app.NodeRepo, gr app.GroupRepo, er domain.ExpressionRepo) *NodeInteractor {
+	return &NodeInteractor{pr, gr, er}
 }
 
 func (i *NodeInteractor) Create(groupId *valueobject.ID, s app.Node) (*app.Node, error) {
@@ -45,6 +46,24 @@ func (i *NodeInteractor) View(ids []valueobject.ID) (*app.NodeView, error) {
 	}
 
 	return nodesView, nil
+}
+
+func (i *NodeInteractor) Update(actorId *valueobject.ID, node app.FlatNode) error {
+	member, err := i.GroupRepo.FindMemberByNodeId(node.Id, actorId)
+	if err != nil {
+		return err
+	}
+
+	if member.Role == app.UserReader {
+		return errors.New("Fobidden, only admin or editor can edit node.")
+	}
+
+	err = i.NodeRepo.Update(node)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (i *NodeInteractor) AttachExpression(nodeId *valueobject.ID, inExpr app.Expression) (*app.Expression, error) {

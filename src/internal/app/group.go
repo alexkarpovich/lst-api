@@ -58,7 +58,9 @@ type GroupRepo interface {
 	Update(Group) error
 	List(*valueobject.ID) ([]*Group, error)
 	MarkAsDeleted(*valueobject.ID) error
+	//FindByNode(*valueobject.ID) (*Group, error)
 	FindMemberById(*valueobject.ID, *valueobject.ID) (*GroupMember, error)
+	FindMemberByNodeId(*valueobject.ID, *valueobject.ID) (*GroupMember, error)
 	FindMemberByToken(string) (*valueobject.ID, *GroupMember, error)
 	AttachUser(*valueobject.ID, GroupMember) error
 	DetachMember(*valueobject.ID, *valueobject.ID) error

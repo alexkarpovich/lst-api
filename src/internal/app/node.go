@@ -94,6 +94,7 @@ type NodeRepo interface {
 	Get(*valueobject.ID) (*Node, error)
 	View([]valueobject.ID) (*NodeView, error)
 	List(*valueobject.ID) ([]*FlatNode, error)
+	Update(FlatNode) error
 	AttachExpression(*valueobject.ID, Expression) (*Expression, error)
 	DetachExpression(*valueobject.ID, *valueobject.ID) error
 	AvailableTranslations(*valueobject.ID, *valueobject.ID) ([]*Translation, error)

@@ -16,6 +16,7 @@ import (
 type NodeInteractor interface {
 	Get(*valueobject.ID) (*app.Node, error)
 	View([]valueobject.ID) (*app.NodeView, error)
+	Update(*valueobject.ID, app.FlatNode) error
 	AttachExpression(*valueobject.ID, app.Expression) (*app.Expression, error)
 	DetachExpression(*valueobject.ID, *valueobject.ID) error
 	AvailableTranslations(*valueobject.ID, *valueobject.ID) ([]*app.Translation, error)
@@ -42,15 +43,16 @@ func ConfigureNodeHandler(fi NodeInteractor, r *mux.Router) {
 		Queries("ids", "{[0-9]+}").
 		Methods("GET")
 	h.router.HandleFunc("/me/nodes/{node_id}", h.Get()).Methods("GET")
-	h.router.HandleFunc("/me/nodes/{nodeId}/translations", h.AvailableTranslations()).
+	h.router.HandleFunc("/me/nodes/{node_id}", h.Update()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{node_id}/translations", h.AvailableTranslations()).
 		Queries("expression_id", "{[0-9]+}").
 		Methods("GET")
-	h.router.HandleFunc("/me/nodes/{nodeId}/attach-expression", h.AttachExpression()).Methods("POST")
-	h.router.HandleFunc("/me/nodes/{nodeId}/detach-expression/{expressionId}", h.DetachExpression()).Methods("POST")
-	h.router.HandleFunc("/me/nodes/{nodeId}/attach-translation", h.AttachTranslation()).Methods("POST")
-	h.router.HandleFunc("/me/nodes/{nodeId}/detach-translation/{translationId}", h.DetachTranslation()).Methods("POST")
-	h.router.HandleFunc("/me/nodes/{nodeId}/attach-text", h.AttachText()).Methods("POST")
-	h.router.HandleFunc("/me/nodes/{nodeId}/detach-text/{textId}", h.DetachText()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{node_id}/attach-expression", h.AttachExpression()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{node_id}/detach-expression/{expression_id}", h.DetachExpression()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{node_id}/attach-translation", h.AttachTranslation()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{node_id}/detach-translation/{translation_id}", h.DetachTranslation()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{node_id}/attach-text", h.AttachText()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{node_id}/detach-text/{text_id}", h.DetachText()).Methods("POST")
 }
 
 func (i *nodeHandler) View() http.HandlerFunc {
@@ -89,7 +91,7 @@ func (i *nodeHandler) Get() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
+		nodeIdArg, err := strconv.Atoi(vars["node_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
 			return
@@ -106,6 +108,53 @@ func (i *nodeHandler) Get() http.HandlerFunc {
 	}
 }
 
+func (i *nodeHandler) Update() http.HandlerFunc {
+	type request struct {
+		Name       string             `json:"name,omitempty"`
+		Path       string             `json:"path,omitempty"`
+		Visibility app.NodeVisibility `json:"visibility,omitempty"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		var s request
+		var err error
+
+		vars := mux.Vars(r)
+		nodeIdArg, err := strconv.Atoi(vars["node_id"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid folder id", http.StatusBadRequest)
+			return
+		}
+		nodeId := valueobject.ID(nodeIdArg)
+
+		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
+			utils.SendJsonError(w, "Invalid request data", http.StatusBadRequest)
+			return
+		}
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			log.Println("error slice create context")
+			return
+		}
+
+		inNode := app.FlatNode{
+			Id:         &nodeId,
+			Name:       s.Name,
+			Path:       s.Path,
+			Visibility: s.Visibility,
+		}
+
+		err = i.NodeInteractor.Update(user.Id, inNode)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, "Success", http.StatusOK)
+	}
+}
+
 func (i *nodeHandler) AttachExpression() http.HandlerFunc {
 	type request struct {
 		Id    *valueobject.ID `json:"id"`
@@ -117,7 +166,7 @@ func (i *nodeHandler) AttachExpression() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
+		nodeIdArg, err := strconv.Atoi(vars["node_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid folder id", http.StatusBadRequest)
 			return
@@ -148,12 +197,12 @@ func (i *nodeHandler) DetachExpression() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
+		nodeIdArg, err := strconv.Atoi(vars["node_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid folder id", http.StatusBadRequest)
 			return
 		}
-		expressionIdArg, err := strconv.Atoi(vars["expressionId"])
+		expressionIdArg, err := strconv.Atoi(vars["expression_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid expression id", http.StatusBadRequest)
 			return
@@ -176,7 +225,7 @@ func (i *nodeHandler) AvailableTranslations() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
+		nodeIdArg, err := strconv.Atoi(vars["node_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid node id", http.StatusBadRequest)
 			return
@@ -218,7 +267,7 @@ func (i *nodeHandler) AttachTranslation() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
+		nodeIdArg, err := strconv.Atoi(vars["node_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
 			return
@@ -252,12 +301,12 @@ func (i *nodeHandler) DetachTranslation() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
+		nodeIdArg, err := strconv.Atoi(vars["node_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid folder id", http.StatusBadRequest)
 			return
 		}
-		translationIdArg, err := strconv.Atoi(vars["translationId"])
+		translationIdArg, err := strconv.Atoi(vars["translation_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid translation id", http.StatusBadRequest)
 			return
@@ -287,7 +336,7 @@ func (i *nodeHandler) AttachText() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
+		nodeIdArg, err := strconv.Atoi(vars["node_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
 			return
@@ -326,12 +375,12 @@ func (i *nodeHandler) DetachText() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		nodeIdArg, err := strconv.Atoi(vars["nodeId"])
+		nodeIdArg, err := strconv.Atoi(vars["node_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
 			return
 		}
-		textIdArg, err := strconv.Atoi(vars["textId"])
+		textIdArg, err := strconv.Atoi(vars["text_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid text id", http.StatusBadRequest)
 			return

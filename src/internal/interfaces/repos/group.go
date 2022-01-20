@@ -180,6 +180,26 @@ func (r *GroupRepo) FindMemberById(groupId *valueobject.ID, memberId *valueobjec
 	return member, nil
 }
 
+func (r *GroupRepo) FindMemberByNodeId(nodeId *valueobject.ID, memberId *valueobject.ID) (*app.GroupMember, error) {
+	member := &app.GroupMember{
+		Id: memberId,
+	}
+
+	query := `
+		SELECT u.username, ug.role, ug.status FROM user_group ug
+		LEFT JOIN users u ON u.id=ug.user_id
+		LEFT JOIN group_node gn ON gn.group_id=ug.group_id
+		WHERE gn.node_id=$1 AND ug.user_id=$2
+	`
+	err := r.db.Db().QueryRow(query, nodeId, memberId).
+		Scan(&member.Username, &member.Role, &member.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	return member, nil
+}
+
 func (r *GroupRepo) FindMemberByToken(token string) (*valueobject.ID, *app.GroupMember, error) {
 	var groupId *valueobject.ID
 
