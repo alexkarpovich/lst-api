@@ -1,6 +1,7 @@
 DROP INDEX IF EXISTS path_idx;
 DROP INDEX IF EXISTS path_gist_idx;
 
+DROP TABLE IF EXISTS trainings;
 DROP TABLE IF EXISTS object_comment;
 DROP TABLE IF EXISTS node_translation;
 DROP TABLE IF EXISTS node_expression;

@@ -207,6 +207,14 @@ CREATE TABLE object_comment (
   UNIQUE(type, comment_id, object_id)
 );
 
+DROP TABLE IF EXISTS trainings;
+CREATE TABLE trainings (
+  id serial PRIMARY KEY,
+  type SMALLINT NOT NULL,
+  nodes SMALLINT[] NOT NULL,
+  stages jsonb
+);
+
 /* INITIALIZE LANGUAGES */
 
 INSERT INTO languages (code, iso_name, native_name) VALUES
