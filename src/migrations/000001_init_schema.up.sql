@@ -210,9 +210,25 @@ CREATE TABLE object_comment (
 DROP TABLE IF EXISTS trainings;
 CREATE TABLE trainings (
   id serial PRIMARY KEY,
+  owner_id INT NOT NULL,
   type SMALLINT NOT NULL,
-  nodes SMALLINT[] NOT NULL,
-  stages jsonb
+  nodes SMALLINT[] NOT NULL
+);
+
+DROP TABLE IF EXISTS training_items;
+CREATE TABLE trainings (
+  id serial PRIMARY KEY,
+  training_id INT NOT NULL,
+  translation_id INT NOT NULL,
+  stage SMALLINT,
+  cycle SMALLINT,
+  completed BOOLEAN,
+  CONSTRAINT fk_training
+    FOREIGN KEY(training_id) 
+    REFERENCES trainings(id),
+  CONSTRAINT fk_translation
+    FOREIGN KEY(translation_id) 
+    REFERENCES translations(id)
 );
 
 /* INITIALIZE LANGUAGES */

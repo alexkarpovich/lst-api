@@ -12,6 +12,7 @@ type Repos struct {
 	Node       app.NodeRepo
 	Expression domain.ExpressionRepo
 	Lang       domain.LangRepo
+	Training   app.TrainingRepo
 }
 
 func NewRepos(db db.DB) *Repos {
@@ -21,5 +22,6 @@ func NewRepos(db db.DB) *Repos {
 		Node:       NewNodeRepo(db),
 		Expression: NewExpressionRepo(db),
 		Lang:       NewLangRepo(db),
+		Training:   NewTrainingRepo(db),
 	}
 }

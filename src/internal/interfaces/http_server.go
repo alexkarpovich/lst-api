@@ -35,6 +35,9 @@ func configureRouter(repos *repos.Repos, services *services.Services) http.Handl
 	langInterector := usecases.NewLangInteractor(repos.Lang)
 	app_handlers.ConfigureLangHandler(langInterector, baseRouter)
 
+	trainingInterector := usecases.NewTrainingInteractor(repos.Training)
+	app_handlers.ConfigureTrainingHandler(trainingInterector, baseRouter)
+
 	return baseRouter
 }
 
