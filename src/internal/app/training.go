@@ -41,3 +41,18 @@ type TrainingRepo interface {
 	GetByItemId(*valueobject.ID) (*Training, error)
 	HasCreatePermission(*valueobject.ID, []valueobject.ID) bool
 }
+
+// const stageCount = Math.round(Math.log(count * 1. / MIN_CHUNK_SIZE) / Math.log(2)) + 1;
+// let stages = Array.from(Array(stageCount).keys());
+
+// let ids, chunkSize, rate;
+
+// stages = stages.map((k) => {
+// 	ids = shuffle(transIds);
+// 	rate = Math.round(count / (MIN_CHUNK_SIZE * Math.pow(2, k)));
+// 	chunkSize = Math.round(count / rate);
+
+// 	return chunk(ids, chunkSize);
+// });
+
+// console.log(count, stages.map(cycles => cycles.length));

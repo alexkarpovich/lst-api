@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/alexkarpovich/lst-api/src/internal/app"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
@@ -13,6 +14,10 @@ import (
 
 type TrainingInteractor interface {
 	Create(app.Training) (*app.Training, error)
+	Reset(*valueobject.ID, *valueobject.ID) error
+	Next(*valueobject.ID, *valueobject.ID) (*app.TrainingItem, error)
+	GetItem(*valueobject.ID, *valueobject.ID) (*app.TrainingItem, error)
+	Complete(*valueobject.ID, *valueobject.ID) error
 }
 
 type trainingHandler struct {
@@ -28,7 +33,11 @@ func ConfigureTrainingHandler(ti TrainingInteractor, r *mux.Router) {
 		trainingInteractor: ti,
 	}
 
-	h.router.HandleFunc("/me/trainings", h.Create()).Methods("GET")
+	h.router.HandleFunc("/me/trainings", h.Create()).Methods("POST")
+	h.router.HandleFunc("/me/trainings/{training_id}/next", h.Next()).Methods("GET")
+	h.router.HandleFunc("/me/trainings/{training_id}/reset", h.Reset()).Methods("POST")
+	h.router.HandleFunc("/me/training-items/{item_id}", h.GetItem()).Methods("GET")
+	h.router.HandleFunc("/me/training-items/{item_id}/complete", h.Complete()).Methods("POST")
 }
 
 func (i *trainingHandler) Create() http.HandlerFunc {
@@ -64,5 +73,109 @@ func (i *trainingHandler) Create() http.HandlerFunc {
 		}
 
 		utils.SendJson(w, training, http.StatusOK)
+	}
+}
+
+func (i *trainingHandler) Reset() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		trainingIdArg, err := strconv.Atoi(vars["training_id"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid training id", http.StatusBadRequest)
+			return
+		}
+		trainingId := valueobject.ID(trainingIdArg)
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			log.Println("error user context")
+			return
+		}
+
+		err = i.trainingInteractor.Reset(user.Id, &trainingId)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, "Success", http.StatusOK)
+	}
+}
+
+func (i *trainingHandler) Next() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		trainingIdArg, err := strconv.Atoi(vars["training_id"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid training id", http.StatusBadRequest)
+			return
+		}
+		trainingId := valueobject.ID(trainingIdArg)
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			log.Println("error user context")
+			return
+		}
+
+		trainingItem, err := i.trainingInteractor.Next(user.Id, &trainingId)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, trainingItem, http.StatusOK)
+	}
+}
+
+func (i *trainingHandler) GetItem() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		itemIdArg, err := strconv.Atoi(vars["item_id"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid training id", http.StatusBadRequest)
+			return
+		}
+		itemId := valueobject.ID(itemIdArg)
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			log.Println("error user context")
+			return
+		}
+
+		trainingItem, err := i.trainingInteractor.GetItem(user.Id, &itemId)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, trainingItem, http.StatusOK)
+	}
+}
+
+func (i *trainingHandler) Complete() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		itemIdArg, err := strconv.Atoi(vars["item_id"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid training id", http.StatusBadRequest)
+			return
+		}
+		itemId := valueobject.ID(itemIdArg)
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			log.Println("error user context")
+			return
+		}
+
+		err = i.trainingInteractor.Complete(user.Id, &itemId)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, "Success", http.StatusOK)
 	}
 }

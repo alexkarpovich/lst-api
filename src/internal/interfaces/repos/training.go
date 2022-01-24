@@ -17,6 +17,7 @@ func NewTrainingRepo(db db.DB) *TrainingRepo {
 func (r *TrainingRepo) Create(inTraining app.Training) (*app.Training, error) {
 	var query string
 	var err error
+
 	training := &inTraining
 
 	tx, err := r.db.Db().Beginx()
@@ -42,11 +43,31 @@ func (r *TrainingRepo) Create(inTraining app.Training) (*app.Training, error) {
 }
 
 func (r *TrainingRepo) Get(trainingId *valueobject.ID) (*app.Training, error) {
-	return nil, nil
+	query := `
+		SELECT id, owner_id, type, nodes FROM trainings
+		WHERE id=$1
+	`
+	training := &app.Training{}
+	err := r.db.Db().Get(&training, query, trainingId)
+	if err != nil {
+		return nil, err
+	}
+
+	return training, nil
 }
 
 func (r *TrainingRepo) GetByItemId(itemId *valueobject.ID) (*app.Training, error) {
-	return nil, nil
+	query := `
+		SELECT id, owner_id, type, nodes FROM trainings
+		WHERE id = (SELECT training_id FROM training_items WHERE id=$1)
+	`
+	training := &app.Training{}
+	err := r.db.Db().Get(&training, query, itemId)
+	if err != nil {
+		return nil, err
+	}
+
+	return training, nil
 }
 
 func (r *TrainingRepo) HasCreatePermission(userId *valueobject.ID, nodes []valueobject.ID) bool {
