@@ -261,6 +261,22 @@ func (r *NodeRepo) List(groupId *valueobject.ID) ([]*app.FlatNode, error) {
 	return result, nil
 }
 
+func (r *NodeRepo) FilterSliceIds(sliceIds []valueobject.ID) ([]valueobject.ID, error) {
+	var query string
+	var err error
+
+	ids := []valueobject.ID{}
+	query = `SELECT id FROM nodes WHERE type=$1 id in (?)`
+	query, args, err := sqlx.In(query, app.NodeSlice, sliceIds)
+	query = r.db.Db().Rebind(query)
+	err = r.db.Db().Select(&ids, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
 func (r *NodeRepo) Update(obj app.FlatNode) error {
 	var query string
 
@@ -366,6 +382,29 @@ func (r *NodeRepo) DetachExpression(nodeId *valueobject.ID, expressionId *valueo
 	tx.Commit()
 
 	return nil
+}
+
+func (r *NodeRepo) NativeExpressions(sliceIds []valueobject.ID) ([]*app.Expression, error) {
+	var query string
+	var err error
+
+	expressions := []*app.Expression{}
+	query = `
+		SELECT id, value, lang FROM expressions e
+		WHERE id IN (
+			SELECT native_id FROM translations t
+			LEFT JOIN node_translation nt ON nt.translation_id=t.id
+			WHERE nt.node_id IN (?)
+		);
+	`
+	query, args, err := sqlx.In(query, sliceIds)
+	query = r.db.Db().Rebind(query)
+	err = r.db.Db().Select(&expressions, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return expressions, nil
 }
 
 func (r *NodeRepo) AvailableTranslations(nodeId *valueobject.ID, expressionId *valueobject.ID) ([]*app.Translation, error) {

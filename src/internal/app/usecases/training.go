@@ -4,27 +4,42 @@ import (
 	"errors"
 
 	"github.com/alexkarpovich/lst-api/src/internal/app"
+	"github.com/alexkarpovich/lst-api/src/internal/app/services"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 )
 
 type TrainingInteractor struct {
-	TrainingRepo app.TrainingRepo
+	TrainingRepo    app.TrainingRepo
+	NodeRepo        app.NodeRepo
+	TrainingService services.TrainingService
 }
 
-func NewTrainingInteractor(tr app.TrainingRepo) *TrainingInteractor {
-	return &TrainingInteractor{tr}
+func NewTrainingInteractor(tr app.TrainingRepo, nr app.NodeRepo, ts services.TrainingService) *TrainingInteractor {
+	return &TrainingInteractor{tr, nr, ts}
 }
 
 func (i *TrainingInteractor) Create(inTraining app.Training) (*app.Training, error) {
-	if !i.TrainingRepo.HasCreatePermission(inTraining.OwnerId, inTraining.Nodes) {
-		return nil, errors.New("Forbidden, only user which has at least read role can do this.")
+	sliceOnlyIds, err := i.NodeRepo.FilterSliceIds(inTraining.Slices)
+	if err != nil {
+		return nil, err
 	}
 
-	if len(inTraining.Nodes) == 0 {
+	if len(sliceOnlyIds) == 0 {
 		return nil, errors.New("There must be at least one node.")
 	}
 
-	training, err := i.TrainingRepo.Create(inTraining)
+	if !i.TrainingRepo.HasCreatePermission(inTraining.OwnerId, sliceOnlyIds) {
+		return nil, errors.New("Forbidden, only user which has at least read role can do this.")
+	}
+
+	inTraining.Slices = sliceOnlyIds
+
+	trnWithItems, err := i.TrainingService.Build(inTraining)
+	if err != nil {
+		return nil, err
+	}
+
+	training, err := i.TrainingRepo.Create(*trnWithItems)
 	if err != nil {
 		return nil, err
 	}

@@ -42,8 +42,8 @@ func ConfigureTrainingHandler(ti TrainingInteractor, r *mux.Router) {
 
 func (i *trainingHandler) Create() http.HandlerFunc {
 	type request struct {
-		Type  app.TrainingType `json:"type"`
-		Nodes []valueobject.ID `json:"nodes"`
+		Type   app.TrainingType `json:"type"`
+		Slices []valueobject.ID `json:"slices"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +63,7 @@ func (i *trainingHandler) Create() http.HandlerFunc {
 		inTraining := app.Training{
 			OwnerId: user.Id,
 			Type:    s.Type,
-			Nodes:   s.Nodes,
+			Slices:  s.Slices,
 		}
 
 		training, err := i.trainingInteractor.Create(inTraining)

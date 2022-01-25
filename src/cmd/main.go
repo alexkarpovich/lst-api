@@ -37,7 +37,7 @@ func main() {
 	serverAddress := fmt.Sprintf("%s:%s", os.Getenv("API_HOST"), os.Getenv("API_PORT"))
 	fmt.Printf("User API server listening %s", serverAddress)
 
-	services := services.NewServices()
+	services := services.NewServices(repos)
 
 	srv, err := interfaces.NewHTTPServer(serverAddress, repos, services)
 

@@ -4,6 +4,7 @@ import (
 	"github.com/alexkarpovich/lst-api/src/internal/app"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 	"github.com/alexkarpovich/lst-api/src/internal/interfaces/db"
+	"github.com/lib/pq"
 )
 
 type TrainingRepo struct {
@@ -30,8 +31,18 @@ func (r *TrainingRepo) Create(inTraining app.Training) (*app.Training, error) {
 		VALUES($1, $2, $3)
 		RETURNING id
 	`
-	err = tx.QueryRow(query, training.OwnerId, training.Type, training.Nodes).
+	err = tx.QueryRow(query, training.OwnerId, training.Type, pq.Array(training.Slices)).
 		Scan(&training.Id)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	query = `
+		INSERT INTO training_items (training_id, expression_id, stage, cycle, completed)
+		VALUES (:training_id, :expression_id, :stage, :cycle, :completed)
+	`
+	_, err = tx.NamedExec(query, training.Items)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
