@@ -47,13 +47,26 @@ func (i *TrainingInteractor) Create(inTraining app.Training) (*app.Training, err
 	return training, nil
 }
 
+func (i *TrainingInteractor) Get(actorId *valueobject.ID, trainingId *valueobject.ID) (*app.Training, error) {
+	training, err := i.TrainingRepo.Get(trainingId)
+	if err != nil {
+		return nil, err
+	}
+
+	if *training.OwnerId != *actorId {
+		return nil, errors.New("Forbidden, only training owner can do this.")
+	}
+
+	return training, nil
+}
+
 func (i *TrainingInteractor) Reset(actorId *valueobject.ID, trainingId *valueobject.ID) error {
 	training, err := i.TrainingRepo.Get(trainingId)
 	if err != nil {
 		return err
 	}
 
-	if training.OwnerId != actorId {
+	if *training.OwnerId != *actorId {
 		return errors.New("Forbidden, only training owner can do this.")
 	}
 
@@ -66,11 +79,16 @@ func (i *TrainingInteractor) Next(actorId *valueobject.ID, trainingId *valueobje
 		return nil, err
 	}
 
-	if training.OwnerId != actorId {
+	if *training.OwnerId != *actorId {
 		return nil, errors.New("Forbidden, only training owner can do this.")
 	}
 
-	return nil, nil
+	trainingItem, err := i.TrainingRepo.NextItem(trainingId)
+	if err != nil {
+		return nil, err
+	}
+
+	return trainingItem, nil
 }
 
 func (i *TrainingInteractor) GetItem(actorId *valueobject.ID, itemId *valueobject.ID) (*app.TrainingItem, error) {
@@ -79,7 +97,7 @@ func (i *TrainingInteractor) GetItem(actorId *valueobject.ID, itemId *valueobjec
 		return nil, err
 	}
 
-	if training.OwnerId != actorId {
+	if *training.OwnerId != *actorId {
 		return nil, errors.New("Forbidden, only training owner can do this.")
 	}
 
@@ -92,7 +110,7 @@ func (i *TrainingInteractor) Complete(actorId *valueobject.ID, itemId *valueobje
 		return err
 	}
 
-	if training.OwnerId != actorId {
+	if *training.OwnerId != *actorId {
 		return errors.New("Forbidden, only training owner can do this.")
 	}
 

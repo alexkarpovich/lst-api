@@ -14,6 +14,7 @@ import (
 
 type TrainingInteractor interface {
 	Create(app.Training) (*app.Training, error)
+	Get(*valueobject.ID, *valueobject.ID) (*app.Training, error)
 	Reset(*valueobject.ID, *valueobject.ID) error
 	Next(*valueobject.ID, *valueobject.ID) (*app.TrainingItem, error)
 	GetItem(*valueobject.ID, *valueobject.ID) (*app.TrainingItem, error)
@@ -34,6 +35,7 @@ func ConfigureTrainingHandler(ti TrainingInteractor, r *mux.Router) {
 	}
 
 	h.router.HandleFunc("/me/trainings", h.Create()).Methods("POST")
+	h.router.HandleFunc("/me/trainings/{training_id}", h.Get()).Methods("GET")
 	h.router.HandleFunc("/me/trainings/{training_id}/next", h.Next()).Methods("GET")
 	h.router.HandleFunc("/me/trainings/{training_id}/reset", h.Reset()).Methods("POST")
 	h.router.HandleFunc("/me/training-items/{item_id}", h.GetItem()).Methods("GET")
@@ -67,6 +69,32 @@ func (i *trainingHandler) Create() http.HandlerFunc {
 		}
 
 		training, err := i.trainingInteractor.Create(inTraining)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, training, http.StatusOK)
+	}
+}
+
+func (i *trainingHandler) Get() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		trainingIdArg, err := strconv.Atoi(vars["training_id"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid training id", http.StatusBadRequest)
+			return
+		}
+		trainingId := valueobject.ID(trainingIdArg)
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			log.Println("error user context")
+			return
+		}
+
+		training, err := i.trainingInteractor.Get(user.Id, &trainingId)
 		if err != nil {
 			utils.SendJsonError(w, err, http.StatusBadRequest)
 			return

@@ -266,7 +266,7 @@ func (r *NodeRepo) FilterSliceIds(sliceIds []valueobject.ID) ([]valueobject.ID, 
 	var err error
 
 	ids := []valueobject.ID{}
-	query = `SELECT id FROM nodes WHERE type=$1 id in (?)`
+	query = `SELECT id FROM nodes WHERE type=? AND id in (?)`
 	query, args, err := sqlx.In(query, app.NodeSlice, sliceIds)
 	query = r.db.Db().Rebind(query)
 	err = r.db.Db().Select(&ids, query, args...)
@@ -390,7 +390,7 @@ func (r *NodeRepo) NativeExpressions(sliceIds []valueobject.ID) ([]*app.Expressi
 
 	expressions := []*app.Expression{}
 	query = `
-		SELECT id, value, lang FROM expressions e
+		SELECT id, value FROM expressions e
 		WHERE id IN (
 			SELECT native_id FROM translations t
 			LEFT JOIN node_translation nt ON nt.translation_id=t.id

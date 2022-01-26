@@ -222,7 +222,7 @@ CREATE TABLE training_items (
   expression_id INT NOT NULL,
   stage SMALLINT,
   cycle SMALLINT,
-  completed BOOLEAN,
+  complete BOOLEAN,
   CONSTRAINT fk_training
     FOREIGN KEY(training_id) 
     REFERENCES trainings(id),

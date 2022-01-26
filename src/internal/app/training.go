@@ -24,7 +24,7 @@ type TrainingItem struct {
 	ExpressionId *valueobject.ID     `json:"expressionId" db:"expression_id"`
 	Stage        uint                `json:"stage" db:"stage"`
 	Cycle        uint                `json:"cycle" db:"cycle"`
-	Complete     bool                `json:"completed" db:"complete"`
+	Complete     bool                `json:"complete" db:"complete"`
 	Expression   *TrainingExpression `json:"expression"`
 }
 
@@ -40,5 +40,6 @@ type TrainingRepo interface {
 	Create(Training) (*Training, error)
 	Get(*valueobject.ID) (*Training, error)
 	GetByItemId(*valueobject.ID) (*Training, error)
+	NextItem(*valueobject.ID) (*TrainingItem, error)
 	HasCreatePermission(*valueobject.ID, []valueobject.ID) bool
 }
