@@ -18,7 +18,7 @@ type TrainingInteractor interface {
 	Reset(*valueobject.ID, *valueobject.ID) error
 	Next(*valueobject.ID, *valueobject.ID) (*app.TrainingItem, error)
 	GetItem(*valueobject.ID, *valueobject.ID) (*app.TrainingItem, error)
-	Complete(*valueobject.ID, *valueobject.ID) error
+	MarkItemAsComplete(*valueobject.ID, *valueobject.ID) error
 }
 
 type trainingHandler struct {
@@ -198,7 +198,7 @@ func (i *trainingHandler) Complete() http.HandlerFunc {
 			return
 		}
 
-		err = i.trainingInteractor.Complete(user.Id, &itemId)
+		err = i.trainingInteractor.MarkItemAsComplete(user.Id, &itemId)
 		if err != nil {
 			utils.SendJsonError(w, err, http.StatusBadRequest)
 			return

@@ -38,8 +38,10 @@ type Training struct {
 
 type TrainingRepo interface {
 	Create(Training) (*Training, error)
+	Reset(*valueobject.ID) error
 	Get(*valueobject.ID) (*Training, error)
 	GetByItemId(*valueobject.ID) (*Training, error)
 	NextItem(*valueobject.ID) (*TrainingItem, error)
+	MarkItemAsComplete(*valueobject.ID) error
 	HasCreatePermission(*valueobject.ID, []valueobject.ID) bool
 }

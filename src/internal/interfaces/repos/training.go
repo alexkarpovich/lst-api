@@ -55,6 +55,19 @@ func (r *TrainingRepo) Create(inTraining app.Training) (*app.Training, error) {
 	return training, nil
 }
 
+func (r *TrainingRepo) Reset(trainingId *valueobject.ID) error {
+	query := `
+		UPDATE training_items SET complete=FALSE
+		WHERE training_id=$1
+	`
+	_, err := r.db.Db().Exec(query, trainingId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *TrainingRepo) Get(trainingId *valueobject.ID) (*app.Training, error) {
 	query := `
 		SELECT id, owner_id, type, slices FROM trainings
@@ -81,9 +94,15 @@ func (r *TrainingRepo) GetByItemId(itemId *valueobject.ID) (*app.Training, error
 		WHERE id = (SELECT training_id FROM training_items WHERE id=$1)
 	`
 	training := &app.Training{}
-	err := r.db.Db().Get(&training, query, itemId)
+	sliceArr := pq.Int64Array{}
+	err := r.db.Db().QueryRow(query, itemId).
+		Scan(&training.Id, &training.OwnerId, &training.Type, &sliceArr)
 	if err != nil {
 		return nil, err
+	}
+
+	for sliceId := range sliceArr {
+		training.Slices = append(training.Slices, valueobject.ID(sliceId))
 	}
 
 	return training, nil
@@ -99,7 +118,9 @@ func (r *TrainingRepo) NextItem(trainingId *valueobject.ID) (*app.TrainingItem, 
 		ORDER BY RANDOM()
 		LIMIT 1
 	`
-	trainingItem := &app.TrainingItem{}
+	trainingItem := &app.TrainingItem{
+		TrainingId: trainingId,
+	}
 	expr := &app.TrainingExpression{}
 	err := r.db.Db().QueryRow(query, trainingId).
 		Scan(&trainingItem.Id, &trainingItem.ExpressionId, &trainingItem.Stage, &trainingItem.Cycle, &expr.Value)
@@ -110,6 +131,19 @@ func (r *TrainingRepo) NextItem(trainingId *valueobject.ID) (*app.TrainingItem, 
 	trainingItem.Expression = expr
 
 	return trainingItem, nil
+}
+
+func (r *TrainingRepo) MarkItemAsComplete(itemId *valueobject.ID) error {
+	query := `
+		UPDATE training_items SET complete=TRUE
+		WHERE id=$1
+	`
+	_, err := r.db.Db().Exec(query, itemId)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *TrainingRepo) HasCreatePermission(userId *valueobject.ID, nodes []valueobject.ID) bool {

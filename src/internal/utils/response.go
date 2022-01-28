@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -29,6 +28,6 @@ func SendJsonError(w http.ResponseWriter, errors interface{}, statusCode int) {
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(&response{
 		Data:   nil,
-		Errors: fmt.Errorf("%v", errors),
+		Errors: errors,
 	})
 }

@@ -70,6 +70,11 @@ func (i *TrainingInteractor) Reset(actorId *valueobject.ID, trainingId *valueobj
 		return errors.New("Forbidden, only training owner can do this.")
 	}
 
+	err = i.TrainingRepo.Reset(trainingId)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -104,7 +109,7 @@ func (i *TrainingInteractor) GetItem(actorId *valueobject.ID, itemId *valueobjec
 	return nil, nil
 }
 
-func (i *TrainingInteractor) Complete(actorId *valueobject.ID, itemId *valueobject.ID) error {
+func (i *TrainingInteractor) MarkItemAsComplete(actorId *valueobject.ID, itemId *valueobject.ID) error {
 	training, err := i.TrainingRepo.GetByItemId(itemId)
 	if err != nil {
 		return err
@@ -112,6 +117,11 @@ func (i *TrainingInteractor) Complete(actorId *valueobject.ID, itemId *valueobje
 
 	if *training.OwnerId != *actorId {
 		return errors.New("Forbidden, only training owner can do this.")
+	}
+
+	err = i.TrainingRepo.MarkItemAsComplete(itemId)
+	if err != nil {
+		return err
 	}
 
 	return nil
