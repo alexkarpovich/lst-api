@@ -109,6 +109,24 @@ func (i *TrainingInteractor) GetItem(actorId *valueobject.ID, itemId *valueobjec
 	return nil, nil
 }
 
+func (i *TrainingInteractor) ItemAnswers(actorId *valueobject.ID, itemId *valueobject.ID) ([]*app.TrainingAnswer, error) {
+	training, err := i.TrainingRepo.GetByItemId(itemId)
+	if err != nil {
+		return nil, err
+	}
+
+	if *training.OwnerId != *actorId {
+		return nil, errors.New("Forbidden, only training owner can do this.")
+	}
+
+	answers, err := i.TrainingRepo.ItemAnswers(itemId)
+	if err != nil {
+		return nil, err
+	}
+
+	return answers, nil
+}
+
 func (i *TrainingInteractor) MarkItemAsComplete(actorId *valueobject.ID, itemId *valueobject.ID) error {
 	training, err := i.TrainingRepo.GetByItemId(itemId)
 	if err != nil {

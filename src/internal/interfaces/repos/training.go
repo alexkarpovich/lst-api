@@ -6,6 +6,7 @@ import (
 	"github.com/alexkarpovich/lst-api/src/internal/app"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 	"github.com/alexkarpovich/lst-api/src/internal/interfaces/db"
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
 
@@ -68,6 +69,21 @@ func (r *TrainingRepo) Reset(trainingId *valueobject.ID) error {
 	return nil
 }
 
+func (r *TrainingRepo) getMeta(trainingId *valueobject.ID) (*app.TrainingMeta, error) {
+	query := `
+		SELECT (SELECT COUNT(id) FROM training_items WHERE training_id=$1 AND stage=1) itemCount,
+			(SELECT COUNT(id) FROM training_items WHERE training_id=$1 AND complete=TRUE) completeCount,
+			(SELECT COUNT(DISTINCT stage) FROM training_items WHERE training_id=$1) stageCount
+	`
+	meta := &app.TrainingMeta{}
+	err := r.db.Db().QueryRow(query, trainingId).
+		Scan(&meta.UniqueItemCount, &meta.CompleteCount, &meta.StageCount)
+	if err != nil {
+		return nil, err
+	}
+	return meta, nil
+}
+
 func (r *TrainingRepo) Get(trainingId *valueobject.ID) (*app.Training, error) {
 	query := `
 		SELECT id, owner_id, type, slices FROM trainings
@@ -81,8 +97,13 @@ func (r *TrainingRepo) Get(trainingId *valueobject.ID) (*app.Training, error) {
 		return nil, err
 	}
 
-	for sliceId := range sliceArr {
+	for _, sliceId := range sliceArr {
 		training.Slices = append(training.Slices, valueobject.ID(sliceId))
+	}
+
+	training.Meta, err = r.getMeta(trainingId)
+	if err != nil {
+		return nil, err
 	}
 
 	return training, nil
@@ -101,8 +122,13 @@ func (r *TrainingRepo) GetByItemId(itemId *valueobject.ID) (*app.Training, error
 		return nil, err
 	}
 
-	for sliceId := range sliceArr {
+	for _, sliceId := range sliceArr {
 		training.Slices = append(training.Slices, valueobject.ID(sliceId))
+	}
+
+	training.Meta, err = r.getMeta(training.Id)
+	if err != nil {
+		return nil, err
 	}
 
 	return training, nil
@@ -131,6 +157,25 @@ func (r *TrainingRepo) NextItem(trainingId *valueobject.ID) (*app.TrainingItem, 
 	trainingItem.Expression = expr
 
 	return trainingItem, nil
+}
+
+func (r *TrainingRepo) ItemAnswers(itemId *valueobject.ID) ([]*app.TrainingAnswer, error) {
+	training, err := r.GetByItemId(itemId)
+	if err != nil {
+		return nil, err
+	}
+	query := `
+		SELECT e.id, e.value FROM expressions e
+		LEFT JOIN translations t ON t.target_id=e.id
+		LEFT JOIN node_translation nt ON nt.translation_id=t.id
+		WHERE nt.node_id IN (?)
+	`
+	answers := []*app.TrainingAnswer{}
+	query, args, err := sqlx.In(query, training.Slices)
+	query = r.db.Db().Rebind(query)
+	err = r.db.Db().Select(&answers, query, args...)
+
+	return answers, nil
 }
 
 func (r *TrainingRepo) MarkItemAsComplete(itemId *valueobject.ID) error {

@@ -4,11 +4,11 @@ import (
 	"github.com/alexkarpovich/lst-api/src/internal/app"
 )
 
-type trainingThroughService struct {
+type trainingDirectService struct {
 	*TrainingService
 }
 
-func (s *trainingThroughService) Build(trn app.Training) (*app.Training, error) {
+func (s *trainingDirectService) Build(trn app.Training) (*app.Training, error) {
 	training := &trn
 	expressions, err := s.NodeRepo.NativeExpressions(trn.Slices)
 	if err != nil {
@@ -28,6 +28,14 @@ func (s *trainingThroughService) Build(trn app.Training) (*app.Training, error) 
 
 		training.Items = append(training.Items, trnItem)
 	}
+
+	meta := &app.TrainingMeta{
+		StageCount:      1,
+		UniqueItemCount: uint(xCount),
+		CompleteCount:   0,
+	}
+
+	training.Meta = meta
 
 	return training, nil
 }

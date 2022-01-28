@@ -9,10 +9,10 @@ type TrainingService struct {
 }
 
 func (s *TrainingService) Build(trn app.Training) (*app.Training, error) {
-	if trn.Type == app.TrainingThrough {
-		throughService := &trainingThroughService{s}
+	if trn.Type == app.TrainingDirect {
+		directService := &trainingDirectService{s}
 
-		return throughService.Build(trn)
+		return directService.Build(trn)
 	}
 	if trn.Type == app.TrainingCycles {
 		throughService := &trainingCyclesService{s}

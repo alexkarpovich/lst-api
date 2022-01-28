@@ -7,7 +7,7 @@ import (
 type TrainingType uint
 
 const (
-	TrainingThrough TrainingType = iota
+	TrainingDirect TrainingType = iota
 	TrainingReverse
 	TrainingListen
 	TrainingCycles
@@ -16,6 +16,17 @@ const (
 type TrainingExpression struct {
 	Id    *valueobject.ID `json:"id"`
 	Value string          `json:"value"`
+}
+
+type TrainingAnswer struct {
+	Id    *valueobject.ID `json:"id"`
+	Value string          `json:"value"`
+}
+
+type TrainingMeta struct {
+	StageCount      uint `json:"stageCount"`
+	UniqueItemCount uint `json:"uniqueItemCount"`
+	CompleteCount   uint `json:"completeCount"`
 }
 
 type TrainingItem struct {
@@ -34,6 +45,7 @@ type Training struct {
 	Type    TrainingType     `json:"type" db:"type"`
 	Slices  []valueobject.ID `json:"slices" db:"slices"`
 	Items   []*TrainingItem  `json:"-"`
+	Meta    *TrainingMeta    `json:"meta" db:"meta"`
 }
 
 type TrainingRepo interface {
@@ -42,6 +54,7 @@ type TrainingRepo interface {
 	Get(*valueobject.ID) (*Training, error)
 	GetByItemId(*valueobject.ID) (*Training, error)
 	NextItem(*valueobject.ID) (*TrainingItem, error)
+	ItemAnswers(*valueobject.ID) ([]*TrainingAnswer, error)
 	MarkItemAsComplete(*valueobject.ID) error
 	HasCreatePermission(*valueobject.ID, []valueobject.ID) bool
 }
