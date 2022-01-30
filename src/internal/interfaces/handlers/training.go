@@ -15,6 +15,7 @@ import (
 type TrainingInteractor interface {
 	Create(app.Training) (*app.Training, error)
 	Get(*valueobject.ID, *valueobject.ID) (*app.Training, error)
+	List(*valueobject.ID) ([]*app.Training, error)
 	Reset(*valueobject.ID, *valueobject.ID) error
 	Next(*valueobject.ID, *valueobject.ID) (*app.TrainingItem, error)
 	GetItem(*valueobject.ID, *valueobject.ID) (*app.TrainingItem, error)
@@ -35,6 +36,7 @@ func ConfigureTrainingHandler(ti TrainingInteractor, r *mux.Router) {
 		trainingInteractor: ti,
 	}
 
+	h.router.HandleFunc("/me/trainings", h.List()).Methods("GET")
 	h.router.HandleFunc("/me/trainings", h.Create()).Methods("POST")
 	h.router.HandleFunc("/me/trainings/{training_id}", h.Get()).Methods("GET")
 	h.router.HandleFunc("/me/trainings/{training_id}/next", h.Next()).Methods("GET")
@@ -103,6 +105,24 @@ func (i *trainingHandler) Get() http.HandlerFunc {
 		}
 
 		utils.SendJson(w, training, http.StatusOK)
+	}
+}
+
+func (i *trainingHandler) List() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			log.Println("error user context")
+			return
+		}
+
+		trainings, err := i.trainingInteractor.List(user.Id)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, trainings, http.StatusOK)
 	}
 }
 

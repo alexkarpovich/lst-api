@@ -109,6 +109,36 @@ func (r *TrainingRepo) Get(trainingId *valueobject.ID) (*app.Training, error) {
 	return training, nil
 }
 
+func (r *TrainingRepo) List(ownerId *valueobject.ID) ([]*app.Training, error) {
+	query := `
+		SELECT id, type, slices FROM trainings
+		WHERE owner_id=$1
+	`
+	trainings := []*app.Training{}
+	rows, err := r.db.Db().Queryx(query, ownerId)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		sliceArr := pq.Int64Array{}
+		training := &app.Training{OwnerId: ownerId}
+		rows.Scan(&training.Id, &training.Type, &sliceArr)
+		trainings = append(trainings, training)
+
+		for _, sliceId := range sliceArr {
+			training.Slices = append(training.Slices, valueobject.ID(sliceId))
+		}
+
+		training.Meta, err = r.getMeta(training.Id)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return trainings, nil
+}
+
 func (r *TrainingRepo) GetByItemId(itemId *valueobject.ID) (*app.Training, error) {
 	query := `
 		SELECT id, owner_id, type, slices FROM trainings
@@ -141,7 +171,7 @@ func (r *TrainingRepo) NextItem(trainingId *valueobject.ID) (*app.TrainingItem, 
 		WHERE training_id=$1 AND complete=FALSE AND cycle = (
 			SELECT MIN(cycle) FROM training_items WHERE training_id=$1 AND complete=FALSE
 		)
-		ORDER BY RANDOM()
+		ORDER BY random()
 		LIMIT 1
 	`
 	trainingItem := &app.TrainingItem{
@@ -168,10 +198,11 @@ func (r *TrainingRepo) ItemAnswers(itemId *valueobject.ID) ([]*app.TrainingAnswe
 		SELECT e.id, e.value FROM expressions e
 		LEFT JOIN translations t ON t.target_id=e.id
 		LEFT JOIN node_translation nt ON nt.translation_id=t.id
-		WHERE nt.node_id IN (?)
+		LEFT JOIN training_items ti ON ti.expression_id=t.native_id
+		WHERE ti.id=? AND nt.node_id IN (?)
 	`
 	answers := []*app.TrainingAnswer{}
-	query, args, err := sqlx.In(query, training.Slices)
+	query, args, err := sqlx.In(query, itemId, training.Slices)
 	query = r.db.Db().Rebind(query)
 	err = r.db.Db().Select(&answers, query, args...)
 

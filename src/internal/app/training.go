@@ -51,6 +51,7 @@ type Training struct {
 type TrainingRepo interface {
 	Create(Training) (*Training, error)
 	Reset(*valueobject.ID) error
+	List(*valueobject.ID) ([]*Training, error)
 	Get(*valueobject.ID) (*Training, error)
 	GetByItemId(*valueobject.ID) (*Training, error)
 	NextItem(*valueobject.ID) (*TrainingItem, error)

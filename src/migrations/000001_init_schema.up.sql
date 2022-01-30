@@ -212,7 +212,8 @@ CREATE TABLE trainings (
   id serial PRIMARY KEY,
   owner_id INT NOT NULL,
   type SMALLINT NOT NULL,
-  slices SMALLINT[] NOT NULL
+  slices SMALLINT[] NOT NULL,
+  UNIQUE(owner_id, type, slices)
 );
 
 DROP TABLE IF EXISTS training_items;

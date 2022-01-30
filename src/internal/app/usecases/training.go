@@ -60,6 +60,15 @@ func (i *TrainingInteractor) Get(actorId *valueobject.ID, trainingId *valueobjec
 	return training, nil
 }
 
+func (i *TrainingInteractor) List(actorId *valueobject.ID) ([]*app.Training, error) {
+	trainings, err := i.TrainingRepo.List(actorId)
+	if err != nil {
+		return nil, err
+	}
+
+	return trainings, nil
+}
+
 func (i *TrainingInteractor) Reset(actorId *valueobject.ID, trainingId *valueobject.ID) error {
 	training, err := i.TrainingRepo.Get(trainingId)
 	if err != nil {
