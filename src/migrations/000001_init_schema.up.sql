@@ -117,6 +117,54 @@ CREATE TABLE texts (
     REFERENCES users(id)
 );
 
+DROP TABLE IF EXISTS transcription_types;
+CREATE TABLE transcription_types (
+  id serial PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  lang VARCHAR(2) NOT NULL,
+  CONSTRAINT fk_lang
+    FOREIGN KEY(lang) 
+    REFERENCES languages(code),
+  UNIQUE(lang, name)
+);
+
+DROP TABLE IF EXISTS transcriptions;
+CREATE TABLE transcriptions (
+  id serial PRIMARY KEY,
+  type INT NOT NULL,
+  value VARCHAR(128) NOT NULL,
+  CONSTRAINT fk_type
+    FOREIGN KEY(type) 
+    REFERENCES transcription_types(id),
+  UNIQUE(type, value)
+);
+
+DROP TABLE IF EXISTS expression_transcription;
+CREATE TABLE expression_transcription (
+  expression_id INT NOT NULL,
+  transcription_id INT NOT NULL,
+  CONSTRAINT fk_expression
+    FOREIGN KEY(expression_id) 
+    REFERENCES expressions(id),
+  CONSTRAINT fk_transcription
+    FOREIGN KEY(transcription_id) 
+    REFERENCES transcriptions(id),
+  UNIQUE(expression_id, transcription_id)
+);
+
+DROP TABLE IF EXISTS translation_transcription;
+CREATE TABLE translation_transcription (
+  translation_id INT NOT NULL,
+  transcription_id INT NOT NULL,
+  CONSTRAINT fk_translation
+    FOREIGN KEY(translation_id) 
+    REFERENCES translations(id),
+  CONSTRAINT fk_transcription
+    FOREIGN KEY(transcription_id) 
+    REFERENCES transcriptions(id),
+  UNIQUE(translation_id, transcription_id)
+);
+
 DROP TABLE IF EXISTS nodes;
 CREATE TABLE nodes (
   id serial PRIMARY KEY,
@@ -418,6 +466,10 @@ INSERT INTO languages (code, iso_name, native_name) VALUES
 ('yi', 'Yiddish', 'ייִדיש'),
 ('yo', 'Yoruba', 'Yorùbá'),
 ('za', 'Zhuang', 'Saɯ cueŋƅ');
+
+/* ININITALIZE TRANSCRIPTION TYPES */
+INSERT INTO transcription_types (id, name, lang) VALUES
+  (1, 'pinyin', 'zh');
 
 /* INITIALIZE OBJECT TYPES */
 INSERT INTO object_types (id, name) VALUES
