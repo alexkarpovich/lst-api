@@ -2,14 +2,17 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/alexkarpovich/lst-api/src/internal/domain"
+	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 	"github.com/alexkarpovich/lst-api/src/internal/utils"
 	"github.com/gorilla/mux"
 )
 
 type ExpressionInteractor interface {
 	Search(string, string) ([]*domain.Expression, error)
+	GetTranscriptionParts(*valueobject.ID) ([]*domain.TranscriptionPart, error)
 }
 
 type expressionHanlder struct {
@@ -30,7 +33,7 @@ func ConfigureExpressionHandler(ei ExpressionInteractor, r *mux.Router) {
 		Queries("lang", "{[a-z]{2}}").
 		Queries("search", "{.+}").
 		Methods("GET")
-	// h.router.HandleFunc("/me/group", h.ListGroups()).Methods("GET")
+	h.router.HandleFunc("/x/{expression_id}/transcription-parts", h.GetTranscriptionParts()).Methods("GET")
 	// h.router.HandleFunc("/me/group/{groupId}/slice", h.CreateSlice()).Methods("POST")
 	// h.router.HandleFunc("/me/group/{groupId}/slice", h.ListSlices()).Methods("GET")
 }
@@ -47,6 +50,26 @@ func (i *expressionHanlder) Search() http.HandlerFunc {
 		}
 
 		utils.SendJson(w, expressions, http.StatusOK)
+	}
+}
+
+func (i *expressionHanlder) GetTranscriptionParts() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		expressionIdArg, err := strconv.Atoi(vars["expression_id"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
+			return
+		}
+		expressionId := valueobject.ID(expressionIdArg)
+
+		parts, err := i.expressionInteractor.GetTranscriptionParts(&expressionId)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, parts, http.StatusOK)
 	}
 }
 

@@ -1,7 +1,10 @@
 package usecases
 
 import (
+	"strings"
+
 	"github.com/alexkarpovich/lst-api/src/internal/domain"
+	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 )
 
 type ExpressionInteractor struct {
@@ -19,4 +22,20 @@ func (i *ExpressionInteractor) Search(langCode string, value string) ([]*domain.
 	}
 
 	return expressions, nil
+}
+
+func (i *ExpressionInteractor) GetTranscriptionParts(expressionId *valueobject.ID) ([]*domain.TranscriptionPart, error) {
+	expression, err := i.ExpressionRepo.Get(expressionId)
+	if err != nil {
+		return nil, err
+	}
+
+	exprParts := strings.Split(expression.Value, "")
+
+	parts, err := i.ExpressionRepo.GetTranscriptionParts(expressionId, exprParts)
+	if err != nil {
+		return nil, err
+	}
+
+	return parts, nil
 }

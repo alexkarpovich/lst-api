@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/alexkarpovich/lst-api/src/internal/domain"
+	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 	"github.com/alexkarpovich/lst-api/src/internal/interfaces/db"
 )
 
@@ -36,10 +37,10 @@ func (r *ExpressionRepo) Create(obj *domain.Expression) (*domain.Expression, err
 	return obj, nil
 }
 
-func (r *ExpressionRepo) Get(obj *domain.Expression) (*domain.Expression, error) {
+func (r *ExpressionRepo) Get(id *valueobject.ID) (*domain.Expression, error) {
 	var expression *domain.Expression
-	query := `SELECT * FROM expressions WHERE lang=:lang AND value=:value`
-	err := r.db.Db().Get(&expression, query, obj)
+	query := `SELECT * FROM expressions WHERE id=$1`
+	err := r.db.Db().Get(&expression, query, id)
 	if err != nil {
 		return nil, err
 	}
@@ -57,4 +58,13 @@ func (r *ExpressionRepo) Search(langCode string, value string) ([]*domain.Expres
 	}
 
 	return expressions, nil
+}
+
+func (r *ExpressionRepo) GetTranscriptionParts(expressionId *valueobject.ID, exprParts []string) ([]*domain.TranscriptionPart, error) {
+	_ = `
+		SELECT * FROM expressions e
+		LEFT JOIN expression_transcription et ON et.expression_id=e.id
+		LEFT JOIN transcription
+	`
+	return nil, nil
 }

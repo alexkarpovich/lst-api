@@ -24,10 +24,11 @@ const (
 )
 
 type Expression struct {
-	Id           *valueobject.ID `json:"id" db:"id"`
-	Value        string          `json:"value" db:"value"`
-	Translations []*Translation  `json:"translations"`
-	CreatedAt    time.Time       `json:"createdAt" db:"created_at"`
+	Id             *valueobject.ID  `json:"id" db:"id"`
+	Value          string           `json:"value" db:"value"`
+	Transcriptions []*Transcription `json:"transcriptions"`
+	Translations   []*Translation   `json:"translations"`
+	CreatedAt      time.Time        `json:"createdAt" db:"created_at"`
 }
 
 type Translation struct {
@@ -36,6 +37,11 @@ type Translation struct {
 	Transcriptions []string        `json:"transcriptions" db:"transcriptions"`
 	Comment        string          `json:"comment" db:"comment"`
 	CreatedAt      time.Time       `json:"createdAt" db:"created_at"`
+}
+
+type Transcription struct {
+	Id    *valueobject.ID `json:"id" db:"id"`
+	Value string          `json:"value" db:"value"`
 }
 
 type TextTranslation struct {

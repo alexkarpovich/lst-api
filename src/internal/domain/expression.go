@@ -9,8 +9,19 @@ type Expression struct {
 	Lang     *Language       `json:"lang"`
 }
 
+type TranscriptionItem struct {
+	Id    *valueobject.ID `json:"id" db:"id"`
+	Value string          `json:"value" db:"value"`
+}
+
+type TranscriptionPart struct {
+	Expression     Expression           `json:"expression"`
+	Transcriptions []*TranscriptionItem `json:"transcriptions"`
+}
+
 type ExpressionRepo interface {
 	Create(*Expression) (*Expression, error)
-	Get(*Expression) (*Expression, error)
+	Get(*valueobject.ID) (*Expression, error)
 	Search(string, string) ([]*Expression, error)
+	GetTranscriptionParts(*valueobject.ID, []string) ([]*TranscriptionPart, error)
 }
