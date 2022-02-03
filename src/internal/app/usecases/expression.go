@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/alexkarpovich/lst-api/src/internal/domain"
@@ -24,7 +25,7 @@ func (i *ExpressionInteractor) Search(langCode string, value string) ([]*domain.
 	return expressions, nil
 }
 
-func (i *ExpressionInteractor) GetTranscriptionParts(expressionId *valueobject.ID) ([]*domain.TranscriptionPart, error) {
+func (i *ExpressionInteractor) GetTranscriptionParts(expressionId *valueobject.ID, typeId *valueobject.ID) (map[string][]*domain.TranscriptionItem, error) {
 	expression, err := i.ExpressionRepo.Get(expressionId)
 	if err != nil {
 		return nil, err
@@ -32,10 +33,20 @@ func (i *ExpressionInteractor) GetTranscriptionParts(expressionId *valueobject.I
 
 	exprParts := strings.Split(expression.Value, "")
 
-	parts, err := i.ExpressionRepo.GetTranscriptionParts(expressionId, exprParts)
+	transcriptionMap, err := i.ExpressionRepo.GetTranscriptionMap(typeId, exprParts)
 	if err != nil {
 		return nil, err
 	}
 
-	return parts, nil
+	fmt.Print(transcriptionMap)
+
+	// transcriptionParts := []*domain.TranscriptionPart{}
+
+	// for _, exprValue := range exprParts {
+	// 	part := &domain.TranscriptionPart{
+
+	// 	}
+	// }
+
+	return transcriptionMap, nil
 }

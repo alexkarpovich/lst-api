@@ -6,6 +6,7 @@ import (
 	"github.com/alexkarpovich/lst-api/src/internal/domain"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 	"github.com/alexkarpovich/lst-api/src/internal/interfaces/db"
+	"github.com/lib/pq"
 )
 
 type ExpressionRepo struct {
@@ -38,9 +39,9 @@ func (r *ExpressionRepo) Create(obj *domain.Expression) (*domain.Expression, err
 }
 
 func (r *ExpressionRepo) Get(id *valueobject.ID) (*domain.Expression, error) {
-	var expression *domain.Expression
+	expression := &domain.Expression{}
 	query := `SELECT * FROM expressions WHERE id=$1`
-	err := r.db.Db().Get(&expression, query, id)
+	err := r.db.Db().Get(expression, query, id)
 	if err != nil {
 		return nil, err
 	}
@@ -60,11 +61,26 @@ func (r *ExpressionRepo) Search(langCode string, value string) ([]*domain.Expres
 	return expressions, nil
 }
 
-func (r *ExpressionRepo) GetTranscriptionParts(expressionId *valueobject.ID, exprParts []string) ([]*domain.TranscriptionPart, error) {
-	_ = `
-		SELECT * FROM expressions e
+func (r *ExpressionRepo) GetTranscriptionMap(typeId *valueobject.ID, exprParts []string) (map[string][]*domain.TranscriptionItem, error) {
+	query := `
+		SELECT e.value, t.id, t.value FROM expressions e
 		LEFT JOIN expression_transcription et ON et.expression_id=e.id
-		LEFT JOIN transcription
+		LEFT JOIN transcriptions t ON et.transcription_id=t.id
+		WHERE t.type=$1 and e.value = ANY($2) 
 	`
-	return nil, nil
+	rows, err := r.db.Db().Query(query, typeId, pq.StringArray(exprParts))
+	if err != nil {
+		return nil, err
+	}
+
+	transcriptionMap := make(map[string][]*domain.TranscriptionItem)
+
+	for rows.Next() {
+		var exprValue string
+		item := &domain.TranscriptionItem{}
+		rows.Scan(&exprValue, &item.Id, &item.Value)
+		transcriptionMap[exprValue] = append(transcriptionMap[exprValue], item)
+	}
+
+	return transcriptionMap, nil
 }

@@ -23,5 +23,5 @@ type ExpressionRepo interface {
 	Create(*Expression) (*Expression, error)
 	Get(*valueobject.ID) (*Expression, error)
 	Search(string, string) ([]*Expression, error)
-	GetTranscriptionParts(*valueobject.ID, []string) ([]*TranscriptionPart, error)
+	GetTranscriptionMap(*valueobject.ID, []string) (map[string][]*TranscriptionItem, error)
 }
