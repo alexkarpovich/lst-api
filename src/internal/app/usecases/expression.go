@@ -25,7 +25,7 @@ func (i *ExpressionInteractor) Search(langCode string, value string) ([]*domain.
 	return expressions, nil
 }
 
-func (i *ExpressionInteractor) GetTranscriptionParts(expressionId *valueobject.ID, typeId *valueobject.ID) (map[string][]*domain.TranscriptionItem, error) {
+func (i *ExpressionInteractor) GetTranscriptionMap(expressionId *valueobject.ID, typeId *valueobject.ID) (map[string][]*domain.TranscriptionItem, error) {
 	expression, err := i.ExpressionRepo.Get(expressionId)
 	if err != nil {
 		return nil, err

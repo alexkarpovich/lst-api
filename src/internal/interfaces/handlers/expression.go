@@ -12,7 +12,7 @@ import (
 
 type ExpressionInteractor interface {
 	Search(string, string) ([]*domain.Expression, error)
-	GetTranscriptionParts(*valueobject.ID, *valueobject.ID) (map[string][]*domain.TranscriptionItem, error)
+	GetTranscriptionMap(*valueobject.ID, *valueobject.ID) (map[string][]*domain.TranscriptionItem, error)
 }
 
 type expressionHanlder struct {
@@ -34,7 +34,7 @@ func ConfigureExpressionHandler(ei ExpressionInteractor, r *mux.Router) {
 		Queries("search", "{.+}").
 		Methods("GET")
 	h.router.
-		HandleFunc("/x/{expression_id}/transcription-parts", h.GetTranscriptionParts()).
+		HandleFunc("/x/{expression_id}/transcription-parts", h.GetTranscriptionMap()).
 		Queries("type", "{\\d+}").
 		Methods("GET")
 	// h.router.HandleFunc("/me/group/{groupId}/slice", h.CreateSlice()).Methods("POST")
@@ -56,7 +56,7 @@ func (i *expressionHanlder) Search() http.HandlerFunc {
 	}
 }
 
-func (i *expressionHanlder) GetTranscriptionParts() http.HandlerFunc {
+func (i *expressionHanlder) GetTranscriptionMap() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		typeIdArg, err := strconv.Atoi(r.FormValue("type"))
 		if err != nil {
@@ -73,13 +73,13 @@ func (i *expressionHanlder) GetTranscriptionParts() http.HandlerFunc {
 		}
 		expressionId := valueobject.ID(expressionIdArg)
 
-		parts, err := i.expressionInteractor.GetTranscriptionParts(&expressionId, &typeId)
+		transcriptionMap, err := i.expressionInteractor.GetTranscriptionMap(&expressionId, &typeId)
 		if err != nil {
 			utils.SendJsonError(w, err, http.StatusBadRequest)
 			return
 		}
 
-		utils.SendJson(w, parts, http.StatusOK)
+		utils.SendJson(w, transcriptionMap, http.StatusOK)
 	}
 }
 
