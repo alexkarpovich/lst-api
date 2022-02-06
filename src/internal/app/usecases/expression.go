@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/alexkarpovich/lst-api/src/internal/domain"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
@@ -25,15 +24,22 @@ func (i *ExpressionInteractor) Search(langCode string, value string) ([]*domain.
 	return expressions, nil
 }
 
-func (i *ExpressionInteractor) GetTranscriptionMap(expressionId *valueobject.ID, typeId *valueobject.ID) (map[string][]*domain.TranscriptionItem, error) {
-	expression, err := i.ExpressionRepo.Get(expressionId)
+func (i *ExpressionInteractor) CreateTranscription(expressionId *valueobject.ID, inTranscription domain.Transcription) (*domain.Transcription, error) {
+	transcription, err := i.ExpressionRepo.CreateTranscription(expressionId, inTranscription)
 	if err != nil {
 		return nil, err
 	}
 
-	exprParts := strings.Split(expression.Value, "")
+	return transcription, nil
+}
 
-	transcriptionMap, err := i.ExpressionRepo.GetTranscriptionMap(typeId, exprParts)
+func (i *ExpressionInteractor) GetTranscriptionMap(expressionId *valueobject.ID, typeId *valueobject.ID) (map[string][]*domain.TranscriptionItem, error) {
+	// expression, err := i.ExpressionRepo.Get(expressionId)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	transcriptionMap, err := i.ExpressionRepo.GetTranscriptionMap(typeId, expressionId)
 	if err != nil {
 		return nil, err
 	}

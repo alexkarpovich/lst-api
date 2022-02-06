@@ -7,21 +7,23 @@ import (
 )
 
 type Repos struct {
-	User       app.UserRepo
-	Group      app.GroupRepo
-	Node       app.NodeRepo
-	Expression domain.ExpressionRepo
-	Lang       domain.LangRepo
-	Training   app.TrainingRepo
+	User        app.UserRepo
+	Group       app.GroupRepo
+	Node        app.NodeRepo
+	Expression  domain.ExpressionRepo
+	Translation domain.TranslationRepo
+	Lang        domain.LangRepo
+	Training    app.TrainingRepo
 }
 
 func NewRepos(db db.DB) *Repos {
 	return &Repos{
-		User:       NewUserRepo(db),
-		Group:      NewGroupRepo(db),
-		Node:       NewNodeRepo(db),
-		Expression: NewExpressionRepo(db),
-		Lang:       NewLangRepo(db),
-		Training:   NewTrainingRepo(db),
+		User:        NewUserRepo(db),
+		Group:       NewGroupRepo(db),
+		Node:        NewNodeRepo(db),
+		Expression:  NewExpressionRepo(db),
+		Translation: NewTranslationRepo(db),
+		Lang:        NewLangRepo(db),
+		Training:    NewTrainingRepo(db),
 	}
 }

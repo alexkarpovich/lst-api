@@ -142,6 +142,31 @@ func (r *NodeRepo) View(ids []valueobject.ID) (*app.NodeView, error) {
 	var err error
 	var query string
 	var nodeView app.NodeView
+	var tmpId valueobject.ID
+
+	query = `
+		SELECT t.id, tsc.id, tsc.value FROM transcriptions tsc
+		LEFT JOIN translation_transcription tt ON tt.transcription_id=tsc.id
+		LEFT JOIN translations t ON t.id=tt.translation_id
+		LEFT JOIN node_expression ne ON ne.expression_id=t.target_id
+		WHERE ne.node_id IN (?)
+		GROUP BY t.id, tsc.id	
+	`
+	query, args, err := sqlx.In(query, ids)
+	query = r.db.Db().Rebind(query)
+	rows, err := r.db.Db().Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	translTranscMap := make(map[valueobject.ID][]*app.Transcription)
+
+	for rows.Next() {
+		tr := &app.Transcription{}
+		err = rows.Scan(&tmpId, &tr.Id, &tr.Value)
+
+		translTranscMap[tmpId] = append(translTranscMap[tmpId], tr)
+	}
 
 	query = `
 		SELECT t.id, t.target_id, e.value, t.comment, MAX(nt.created_at) created_at FROM translations t
@@ -151,21 +176,51 @@ func (r *NodeRepo) View(ids []valueobject.ID) (*app.NodeView, error) {
 		GROUP BY t.id, e.value
 		ORDER BY created_at DESC
 	`
-	query, args, err := sqlx.In(query, ids)
+	query, args, err = sqlx.In(query, ids)
 	query = r.db.Db().Rebind(query)
-	rows, err := r.db.Db().Query(query, args...)
+	rows, err = r.db.Db().Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	var targetExprId valueobject.ID
 	exprTranslMap := make(map[valueobject.ID][]*app.Translation)
 
 	for rows.Next() {
 		tr := &app.Translation{}
-		err = rows.Scan(&tr.Id, &targetExprId, &tr.Value, &tr.Comment, &tr.CreatedAt)
+		err = rows.Scan(&tr.Id, &tmpId, &tr.Value, &tr.Comment, &tr.CreatedAt)
 
-		exprTranslMap[targetExprId] = append(exprTranslMap[targetExprId], tr)
+		if transc, ok := translTranscMap[*tr.Id]; ok {
+			tr.Transcriptions = transc
+		}
+
+		exprTranslMap[tmpId] = append(exprTranslMap[tmpId], tr)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	query = `
+		SELECT et.expression_id, tsc.id, tsc.value FROM transcriptions tsc
+		LEFT JOIN expression_transcription et ON et.transcription_id=tsc.id
+		LEFT JOIN node_expression ne ON ne.expression_id=et.expression_id
+		WHERE ne.node_id IN (?)
+		GROUP BY et.expression_id, tsc.id	
+	`
+	query, args, err = sqlx.In(query, ids)
+	query = r.db.Db().Rebind(query)
+	rows, err = r.db.Db().Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	exprTranscMap := make(map[valueobject.ID][]*app.Transcription)
+
+	for rows.Next() {
+		tr := &app.Transcription{}
+		err = rows.Scan(&tmpId, &tr.Id, &tr.Value)
+
+		exprTranscMap[tmpId] = append(exprTranscMap[tmpId], tr)
 	}
 
 	if err != nil {
@@ -195,6 +250,10 @@ func (r *NodeRepo) View(ids []valueobject.ID) (*app.NodeView, error) {
 
 		if translations, ok := exprTranslMap[*expr.Id]; ok {
 			expr.Translations = translations
+		}
+
+		if transc, ok := exprTranscMap[*expr.Id]; ok {
+			expr.Transcriptions = transc
 		}
 
 		expressions = append(expressions, expr)

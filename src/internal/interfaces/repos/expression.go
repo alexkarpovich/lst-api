@@ -1,12 +1,12 @@
 package repos
 
 import (
+	"database/sql"
 	"log"
 
 	"github.com/alexkarpovich/lst-api/src/internal/domain"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 	"github.com/alexkarpovich/lst-api/src/internal/interfaces/db"
-	"github.com/lib/pq"
 )
 
 type ExpressionRepo struct {
@@ -61,14 +61,58 @@ func (r *ExpressionRepo) Search(langCode string, value string) ([]*domain.Expres
 	return expressions, nil
 }
 
-func (r *ExpressionRepo) GetTranscriptionMap(typeId *valueobject.ID, exprParts []string) (map[string][]*domain.TranscriptionItem, error) {
+func (r *ExpressionRepo) CreateTranscription(expressionId *valueobject.ID, inTranscription domain.Transcription) (*domain.Transcription, error) {
+
+	transcription := &inTranscription
+
+	tx, err := r.db.Db().Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	query := `SELECT id FROM transcriptions WHERE type=$1 AND value=$2`
+	err = tx.QueryRow(query, transcription.Type, transcription.Value).
+		Scan(&transcription.Id)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return nil, err
+		}
+	}
+
+	if transcription.Id == nil {
+		query = `INSERT INTO transcriptions (type, value) VALUES ($1, $2) RETURNING id`
+		err = tx.QueryRow(query, transcription.Type, transcription.Value).
+			Scan(&transcription.Id)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
+
+	query = `
+		INSERT INTO expression_transcription (expression_id, transcription_id) 
+		VALUES ($1, $2)
+	`
+	_, err = tx.Exec(query, expressionId, transcription.Id)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	tx.Commit()
+
+	return transcription, nil
+}
+
+func (r *ExpressionRepo) GetTranscriptionMap(typeId *valueobject.ID, expressionId *valueobject.ID) (map[string][]*domain.TranscriptionItem, error) {
 	query := `
 		SELECT e.value, t.id, t.value FROM expressions e
 		LEFT JOIN expression_transcription et ON et.expression_id=e.id
 		LEFT JOIN transcriptions t ON et.transcription_id=t.id
-		WHERE t.type=$1 and e.value = ANY($2) 
+		WHERE t.type=$1 and (SELECT value FROM expressions WHERE id=$2) LIKE '%' || e.value || '%'
+		ORDER BY length(e.value) desc 
 	`
-	rows, err := r.db.Db().Query(query, typeId, pq.StringArray(exprParts))
+	rows, err := r.db.Db().Query(query, typeId, expressionId)
 	if err != nil {
 		return nil, err
 	}

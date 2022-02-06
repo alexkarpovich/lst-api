@@ -252,10 +252,9 @@ func (i *nodeHandler) AvailableTranslations() http.HandlerFunc {
 
 func (i *nodeHandler) AttachTranslation() http.HandlerFunc {
 	type translation struct {
-		Id             *valueobject.ID `json:"id"`
-		Value          string          `json:"value"`
-		Transcriptions []string        `json:"transcriptions"`
-		Comment        string          `json:"comment"`
+		Id      *valueobject.ID `json:"id"`
+		Value   string          `json:"value"`
+		Comment string          `json:"comment"`
 	}
 	type request struct {
 		ExpressionId *valueobject.ID `json:"expressionId"`
@@ -280,10 +279,9 @@ func (i *nodeHandler) AttachTranslation() http.HandlerFunc {
 			return
 		}
 		inTranslation := app.Translation{
-			Id:             s.Translation.Id,
-			Transcriptions: s.Translation.Transcriptions,
-			Comment:        s.Translation.Comment,
-			Value:          s.Translation.Value,
+			Id:      s.Translation.Id,
+			Comment: s.Translation.Comment,
+			Value:   s.Translation.Value,
 		}
 
 		translation, err := i.NodeInteractor.AttachTranslation(&nodeId, s.ExpressionId, inTranslation)

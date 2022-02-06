@@ -32,6 +32,9 @@ func configureRouter(repos *repos.Repos, services *services.Services) http.Handl
 	expressionInterector := usecases.NewExpressionInteractor(repos.Expression)
 	app_handlers.ConfigureExpressionHandler(expressionInterector, baseRouter)
 
+	translationInterector := usecases.NewTranslationInteractor(repos.Translation)
+	app_handlers.ConfigureTranslationHandler(translationInterector, baseRouter)
+
 	langInterector := usecases.NewLangInteractor(repos.Lang)
 	app_handlers.ConfigureLangHandler(langInterector, baseRouter)
 

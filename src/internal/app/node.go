@@ -32,11 +32,11 @@ type Expression struct {
 }
 
 type Translation struct {
-	Id             *valueobject.ID `json:"id" db:"id"`
-	Value          string          `json:"value"`
-	Transcriptions []string        `json:"transcriptions" db:"transcriptions"`
-	Comment        string          `json:"comment" db:"comment"`
-	CreatedAt      time.Time       `json:"createdAt" db:"created_at"`
+	Id             *valueobject.ID  `json:"id" db:"id"`
+	Value          string           `json:"value"`
+	Transcriptions []*Transcription `json:"transcriptions" db:"transcriptions"`
+	Comment        string           `json:"comment" db:"comment"`
+	CreatedAt      time.Time        `json:"createdAt" db:"created_at"`
 }
 
 type Transcription struct {
