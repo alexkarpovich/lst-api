@@ -21,8 +21,8 @@ func (s *trainingDirectService) Build(trn app.Training) (*app.Training, error) {
 		trnItem := &app.TrainingItem{
 			TrainingId:   trn.Id,
 			ExpressionId: expressions[i].Id,
-			Stage:        0,
-			Cycle:        0,
+			Stage:        1,
+			Cycle:        1,
 			Complete:     false,
 		}
 

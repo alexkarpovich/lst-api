@@ -2,6 +2,7 @@ package repos
 
 import (
 	"github.com/alexkarpovich/lst-api/src/internal/app"
+	"github.com/alexkarpovich/lst-api/src/internal/domain"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 	"github.com/alexkarpovich/lst-api/src/internal/interfaces/db"
 )
@@ -38,12 +39,12 @@ func (r *GroupRepo) Create(userId *valueobject.ID, obj app.Group) (*app.Group, e
 	}
 
 	query := `
-		INSERT INTO groups (name, target_lang, native_lang, status) 
-		VALUES($1, $2, $3, $4)
+		INSERT INTO groups (name, transcription_type, target_lang, native_lang, status) 
+		VALUES($1, $2, $3, $4, $5)
 		RETURNING id
 	`
 
-	err = tx.QueryRow(query, obj.Name, obj.TargetLangCode, obj.NativeLangCode, obj.Status).
+	err = tx.QueryRow(query, obj.Name, obj.TranscriptionTypeId, obj.TargetLangCode, obj.NativeLangCode, obj.Status).
 		Scan(&obj.Id)
 
 	if err != nil {
@@ -76,13 +77,13 @@ func (r *GroupRepo) Update(obj app.Group) error {
 		return err
 	}
 	if isUntouched {
-		query = `UPDATE groups SET name=$1, target_lang=$2, native_lang=$3 WHERE id=$4`
+		query = `UPDATE groups SET name=$1, transcription_type=$2, target_lang=$3, native_lang=$4 WHERE id=$5`
 
-		_, err = r.db.Db().Exec(query, obj.Name, obj.TargetLangCode, obj.NativeLangCode, obj.Id)
+		_, err = r.db.Db().Exec(query, obj.Name, obj.TranscriptionTypeId, obj.TargetLangCode, obj.NativeLangCode, obj.Id)
 	} else {
-		query = `UPDATE groups SET name=$1 WHERE id=$2`
+		query = `UPDATE groups SET name=$1, transcription_type=$2 WHERE id=$3`
 
-		_, err = r.db.Db().Exec(query, obj.Name, obj.Id)
+		_, err = r.db.Db().Exec(query, obj.Name, obj.TranscriptionTypeId, obj.Id)
 	}
 
 	if err != nil {
@@ -92,16 +93,71 @@ func (r *GroupRepo) Update(obj app.Group) error {
 	return nil
 }
 
-func (r *GroupRepo) List(userId *valueobject.ID) ([]*app.Group, error) {
+func (r *GroupRepo) Get(groupId *valueobject.ID) (*app.Group, error) {
 	query := `
 		SELECT 
-			g.id, g.target_lang, g.native_lang, g.name, g.status, g.config,
+			g.id, tt.id, tt.name, g.target_lang, g.native_lang, g.name, g.status, g.config,
 			(SELECT COUNT(user_id) FROM user_group WHERE group_id=g.id) as users_count,
 			(SELECT coalesce(COUNT(node_id), 0) FROM group_node WHERE group_id=g.id) as node_count 
 		FROM groups g
 		LEFT JOIN user_group ug ON ug.group_id=g.id
+		LEFT JOIN transcription_types tt ON tt.id=g.transcription_type
+		WHERE g.id=$1
+		ORDER BY g.id DESC
+	`
+	var usersCount, nodesCount uint
+	group := &app.Group{}
+	transcriptionType := &domain.TranscriptionType{}
+	err := r.db.Db().QueryRow(query, groupId).
+		Scan(&group.Id, &transcriptionType.Id, &transcriptionType.Name,
+			&group.TargetLangCode, &group.NativeLangCode, &group.Name,
+			&group.Status, &group.Config, &usersCount, &nodesCount)
+	if err != nil {
+		return nil, err
+	}
+
+	group.TranscriptionTypeId = transcriptionType.Id
+	group.TranscriptionType = transcriptionType
+
+	if usersCount == 1 || nodesCount == 0 {
+		group.IsUntouched = true
+	} else {
+		group.IsUntouched = false
+	}
+
+	query = `
+		SELECT u.id, u.username, ug.role, ug.status, ug.group_id FROM user_group ug
+		LEFT JOIN users u ON u.id=ug.user_id
+		where ug.group_id=$1;
+	`
+
+	rows, err := r.db.Db().Query(query, groupId)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var groupId valueobject.ID
+		member := &app.GroupMember{}
+		rows.Scan(&member.Id, &member.Username, &member.Role, &member.Status, &groupId)
+
+		group.Members = append(group.Members, member)
+	}
+
+	return group, nil
+}
+
+func (r *GroupRepo) List(userId *valueobject.ID) ([]*app.Group, error) {
+	query := `
+		SELECT 
+			g.id, tt.id, tt.name, g.target_lang, g.native_lang, g.name, g.status, g.config,
+			(SELECT COUNT(user_id) FROM user_group WHERE group_id=g.id) as users_count,
+			(SELECT coalesce(COUNT(node_id), 0) FROM group_node WHERE group_id=g.id) as node_count 
+		FROM groups g
+		LEFT JOIN user_group ug ON ug.group_id=g.id
+		LEFT JOIN transcription_types tt ON tt.id=g.transcription_type
 		WHERE user_id=$1 AND g.status != $2
-		ORDER BY id DESC
+		ORDER BY g.id DESC
 	`
 	groups := []*app.Group{}
 	groupMap := make(map[valueobject.ID]*app.Group)
@@ -114,7 +170,11 @@ func (r *GroupRepo) List(userId *valueobject.ID) ([]*app.Group, error) {
 
 	for rows.Next() {
 		group := &app.Group{}
-		rows.Scan(&group.Id, &group.TargetLangCode, &group.NativeLangCode, &group.Name, &group.Status, &group.Config, &usersCount, &nodesCount)
+		transcriptionType := &domain.TranscriptionType{}
+		rows.Scan(&group.Id, &transcriptionType.Id, &transcriptionType.Name, &group.TargetLangCode, &group.NativeLangCode, &group.Name, &group.Status, &group.Config, &usersCount, &nodesCount)
+
+		group.TranscriptionTypeId = transcriptionType.Id
+		group.TranscriptionType = transcriptionType
 
 		if usersCount == 1 || nodesCount == 0 {
 			group.IsUntouched = true

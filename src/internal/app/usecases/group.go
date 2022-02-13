@@ -33,6 +33,11 @@ func (i *GroupInteractor) CreateGroup(actorId *valueobject.ID, obj app.Group) (*
 		return nil, err
 	}
 
+	group, err = i.GroupRepo.Get(group.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	return group, nil
 }
 
@@ -175,6 +180,11 @@ func (i *GroupInteractor) CreateSlice(groupId *valueobject.ID, s app.Node) (*app
 	slice, err := i.NodeRepo.Create(groupId, s)
 	if err != nil {
 		log.Println(err)
+		return nil, err
+	}
+
+	slice, err = i.NodeRepo.Get(slice.Id)
+	if err != nil {
 		return nil, err
 	}
 

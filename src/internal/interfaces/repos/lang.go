@@ -24,3 +24,17 @@ func (r *LangRepo) List() ([]*domain.Language, error) {
 
 	return languages, nil
 }
+
+func (r *LangRepo) ListTranscriptionTypes(langCode string) ([]*domain.TranscriptionType, error) {
+	query := `
+		SELECT id, name FROM transcription_types 
+		WHERE lang=$1
+	`
+	transcriptionTypes := []*domain.TranscriptionType{}
+	err := r.db.Db().Select(&transcriptionTypes, query, langCode)
+	if err != nil {
+		return nil, err
+	}
+
+	return transcriptionTypes, nil
+}

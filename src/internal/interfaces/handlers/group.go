@@ -52,9 +52,10 @@ func ConfigureGroupHandler(pi GroupInteractor, r *mux.Router) {
 
 func (i *groupHanlder) CreateGroup() http.HandlerFunc {
 	type request struct {
-		Name           string `json:"name"`
-		TargetLangCode string `json:"targetLangCode"`
-		NativeLangCode string `json:"nativeLangCode"`
+		Name                string          `json:"name"`
+		TranscriptionTypeId *valueobject.ID `json:"transcriptionTypeId"`
+		TargetLangCode      string          `json:"targetLangCode"`
+		NativeLangCode      string          `json:"nativeLangCode"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -73,9 +74,10 @@ func (i *groupHanlder) CreateGroup() http.HandlerFunc {
 		}
 
 		inGroup := app.Group{
-			Name:           s.Name,
-			TargetLangCode: s.TargetLangCode,
-			NativeLangCode: s.NativeLangCode,
+			Name:                s.Name,
+			TranscriptionTypeId: s.TranscriptionTypeId,
+			TargetLangCode:      s.TargetLangCode,
+			NativeLangCode:      s.NativeLangCode,
 		}
 
 		group, err := i.groupInteractor.CreateGroup(user.Id, inGroup)
@@ -90,9 +92,10 @@ func (i *groupHanlder) CreateGroup() http.HandlerFunc {
 
 func (i *groupHanlder) UpdateGroup() http.HandlerFunc {
 	type request struct {
-		Name           string `json:"name"`
-		TargetLangCode string `json:"targetLangCode"`
-		NativeLangCode string `json:"nativeLangCode"`
+		Name                string          `json:"name"`
+		TranscriptionTypeId *valueobject.ID `json:"transcriptionType"`
+		TargetLangCode      string          `json:"targetLangCode"`
+		NativeLangCode      string          `json:"nativeLangCode"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -119,10 +122,11 @@ func (i *groupHanlder) UpdateGroup() http.HandlerFunc {
 		}
 
 		inGroup := app.Group{
-			Id:             &groupId,
-			Name:           s.Name,
-			TargetLangCode: s.TargetLangCode,
-			NativeLangCode: s.NativeLangCode,
+			Id:                  &groupId,
+			Name:                s.Name,
+			TranscriptionTypeId: s.TranscriptionTypeId,
+			TargetLangCode:      s.TargetLangCode,
+			NativeLangCode:      s.NativeLangCode,
 		}
 
 		if err = i.groupInteractor.UpdateGroup(user.Id, inGroup); err != nil {

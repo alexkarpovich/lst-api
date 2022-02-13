@@ -13,7 +13,7 @@ import (
 )
 
 type TrainingInteractor interface {
-	Create(app.Training) (*app.Training, error)
+	GetOrCreate(app.Training) (*app.Training, error)
 	Get(*valueobject.ID, *valueobject.ID) (*app.Training, error)
 	List(*valueobject.ID) ([]*app.Training, error)
 	Reset(*valueobject.ID, *valueobject.ID) error
@@ -72,7 +72,7 @@ func (i *trainingHandler) Create() http.HandlerFunc {
 			Slices:  s.Slices,
 		}
 
-		training, err := i.trainingInteractor.Create(inTraining)
+		training, err := i.trainingInteractor.GetOrCreate(inTraining)
 		if err != nil {
 			utils.SendJsonError(w, err, http.StatusBadRequest)
 			return

@@ -54,6 +54,7 @@ type TrainingRepo interface {
 	List(*valueobject.ID) ([]*Training, error)
 	Get(*valueobject.ID) (*Training, error)
 	GetByItemId(*valueobject.ID) (*Training, error)
+	GetBySlices(Training) (*Training, error)
 	NextItem(*valueobject.ID) (*TrainingItem, error)
 	ItemAnswers(*valueobject.ID) ([]*TrainingAnswer, error)
 	MarkItemAsComplete(*valueobject.ID) error

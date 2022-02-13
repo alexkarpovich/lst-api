@@ -164,6 +164,28 @@ func (r *TrainingRepo) GetByItemId(itemId *valueobject.ID) (*app.Training, error
 	return training, nil
 }
 
+func (r *TrainingRepo) GetBySlices(inTraining app.Training) (*app.Training, error) {
+	training := &inTraining
+	query := `
+		SELECT id FROM trainings
+		WHERE owner_id=? AND type=? AND slices = array[?]::smallint[]
+	`
+	query, args, err := sqlx.In(query, inTraining.OwnerId, inTraining.Type, inTraining.Slices)
+	query = r.db.Db().Rebind(query)
+	err = r.db.Db().QueryRow(query, args...).
+		Scan(&training.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	training.Meta, err = r.getMeta(training.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	return training, nil
+}
+
 func (r *TrainingRepo) NextItem(trainingId *valueobject.ID) (*app.TrainingItem, error) {
 	query := `
 		SELECT ti.id, ti.expression_id, ti.stage, ti.cycle, e.value FROM training_items ti

@@ -10,6 +10,7 @@ import (
 
 type LanguageInteractor interface {
 	List() ([]*domain.Language, error)
+	ListTranscriptionTypes(string) ([]*domain.TranscriptionType, error)
 }
 
 type languageHandler struct {
@@ -26,6 +27,7 @@ func ConfigureLangHandler(li LanguageInteractor, r *mux.Router) {
 	}
 
 	h.router.HandleFunc("/langs", h.List()).Methods("GET")
+	h.router.HandleFunc("/langs/{code:[a-z]{2}}/transcription-types", h.ListTranscriptionTypes()).Methods("GET")
 }
 
 func (i *languageHandler) List() http.HandlerFunc {
@@ -37,5 +39,19 @@ func (i *languageHandler) List() http.HandlerFunc {
 		}
 
 		utils.SendJson(w, languages, http.StatusOK)
+	}
+}
+
+func (i *languageHandler) ListTranscriptionTypes() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+
+		transcriptionTypes, err := i.languageInteractor.ListTranscriptionTypes(vars["code"])
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, transcriptionTypes, http.StatusOK)
 	}
 }

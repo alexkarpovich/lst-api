@@ -20,3 +20,12 @@ func (i *LangInteractor) List() ([]*domain.Language, error) {
 
 	return languages, nil
 }
+
+func (i *LangInteractor) ListTranscriptionTypes(langCode string) ([]*domain.TranscriptionType, error) {
+	transcriptionTypes, err := i.LangRepo.ListTranscriptionTypes(langCode)
+	if err != nil {
+		return nil, err
+	}
+
+	return transcriptionTypes, nil
+}

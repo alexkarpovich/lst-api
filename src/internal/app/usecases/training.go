@@ -18,7 +18,7 @@ func NewTrainingInteractor(tr app.TrainingRepo, nr app.NodeRepo, ts services.Tra
 	return &TrainingInteractor{tr, nr, ts}
 }
 
-func (i *TrainingInteractor) Create(inTraining app.Training) (*app.Training, error) {
+func (i *TrainingInteractor) GetOrCreate(inTraining app.Training) (*app.Training, error) {
 	sliceOnlyIds, err := i.NodeRepo.FilterSliceIds(inTraining.Slices)
 	if err != nil {
 		return nil, err
@@ -33,6 +33,10 @@ func (i *TrainingInteractor) Create(inTraining app.Training) (*app.Training, err
 	}
 
 	inTraining.Slices = sliceOnlyIds
+
+	if trn, err := i.TrainingRepo.GetBySlices(inTraining); err == nil && trn != nil {
+		return trn, nil
+	}
 
 	trnWithItems, err := i.TrainingService.Build(inTraining)
 	if err != nil {

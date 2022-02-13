@@ -36,7 +36,7 @@ func ConfigureExpressionHandler(ei ExpressionInteractor, r *mux.Router) {
 		Queries("search", "{.+}").
 		Methods("GET")
 	h.router.
-		HandleFunc("/x/{expression_id}/transcription-parts", h.GetTranscriptionMap()).
+		HandleFunc("/x/{expression_id}/transcription-map", h.GetTranscriptionMap()).
 		Queries("type", "{\\d+}").
 		Methods("GET")
 	h.router.HandleFunc("/x/{expression_id}/transcriptions", h.CreateTranscription()).Methods("POST")

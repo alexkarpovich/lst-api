@@ -34,14 +34,29 @@ CREATE TABLE users (
 CREATE TRIGGER updated_at BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
 
+DROP TABLE IF EXISTS transcription_types;
+CREATE TABLE transcription_types (
+  id serial PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  lang VARCHAR(2) NOT NULL,
+  CONSTRAINT fk_lang
+    FOREIGN KEY(lang) 
+    REFERENCES languages(code),
+  UNIQUE(lang, name)
+);
+
 DROP TABLE IF EXISTS groups;
 CREATE TABLE groups (
   id serial PRIMARY KEY,
+  transcription_type INT NOT NULL,
   target_lang VARCHAR(2) NOT NULL,
   native_lang VARCHAR(2) NOT NULL,
   name VARCHAR(128) NOT NULL,
   config jsonb,
   status SMALLINT NOT NULL,
+  CONSTRAINT fk_transcription_type
+    FOREIGN KEY(transcription_type) 
+    REFERENCES transcription_types(id),
   CONSTRAINT fk_target_lang
     FOREIGN KEY(target_lang) 
     REFERENCES languages(code),
@@ -115,17 +130,6 @@ CREATE TABLE texts (
   CONSTRAINT fk_author
     FOREIGN KEY(author_id) 
     REFERENCES users(id)
-);
-
-DROP TABLE IF EXISTS transcription_types;
-CREATE TABLE transcription_types (
-  id serial PRIMARY KEY,
-  name VARCHAR(128) NOT NULL,
-  lang VARCHAR(2) NOT NULL,
-  CONSTRAINT fk_lang
-    FOREIGN KEY(lang) 
-    REFERENCES languages(code),
-  UNIQUE(lang, name)
 );
 
 DROP TABLE IF EXISTS transcriptions;
@@ -281,7 +285,6 @@ CREATE TABLE training_items (
 );
 
 /* INITIALIZE LANGUAGES */
-
 INSERT INTO languages (code, iso_name, native_name) VALUES
 ('ab', 'Abkhaz', 'аҧсуа'),
 ('aa', 'Afar', 'Afaraf'),
@@ -467,9 +470,191 @@ INSERT INTO languages (code, iso_name, native_name) VALUES
 ('yo', 'Yoruba', 'Yorùbá'),
 ('za', 'Zhuang', 'Saɯ cueŋƅ');
 
-/* ININITALIZE TRANSCRIPTION TYPES */
-INSERT INTO transcription_types (id, name, lang) VALUES
-  (1, 'pinyin', 'zh');
+/* INITIALIZE DEFAULT TRANSCRIPTION TYPES */
+INSERT INTO transcription_types (lang, name) VALUES
+('ab', 'Default'),
+('aa', 'Default'),
+('af', 'Default'),
+('ak', 'Default'),
+('sq', 'Default'),
+('am', 'Default'),
+('ar', 'Default'),
+('an', 'Default'),
+('hy', 'Default'),
+('as', 'Default'),
+('av', 'Default'),
+('ae', 'Default'),
+('ay', 'Default'),
+('az', 'Default'),
+('bm', 'Default'),
+('ba', 'Default'),
+('eu', 'Default'),
+('be', 'Default'),
+('bn', 'Default'),
+('bh', 'Default'),
+('bi', 'Default'),
+('bs', 'Default'),
+('br', 'Default'),
+('bg', 'Default'),
+('my', 'Default'),
+('ca', 'Default'),
+('ch', 'Default'),
+('ce', 'Default'),
+('ny', 'Default'),
+('zh', 'pinyin'),
+('cv', 'Default'),
+('kw', 'Default'),
+('co', 'Default'),
+('cr', 'Default'),
+('hr', 'Default'),
+('cs', 'Default'),
+('da', 'Default'),
+('dv', 'Default'),
+('nl', 'Default'),
+('en', 'Default'),
+('eo', 'Default'),
+('et', 'Default'),
+('ee', 'Default'),
+('fo', 'Default'),
+('fj', 'Default'),
+('fi', 'Default'),
+('fr', 'Default'),
+('ff', 'Default'),
+('gl', 'Default'),
+('ka', 'Default'),
+('de', 'Default'),
+('el', 'Default'),
+('gn', 'Default'),
+('gu', 'Default'),
+('ht', 'Default'),
+('ha', 'Default'),
+('he', 'Default'),
+('iw', 'Default'),
+('hz', 'Default'),
+('hi', 'Default'),
+('ho', 'Default'),
+('hu', 'Default'),
+('ia', 'Default'),
+('id', 'Default'),
+('ie', 'Default'),
+('ga', 'Default'),
+('ig', 'Default'),
+('ik', 'Default'),
+('io', 'Default'),
+('is', 'Default'),
+('it', 'Default'),
+('iu', 'Default'),
+('ja', 'Default'),
+('jv', 'Default'),
+('kl', 'Default'),
+('kn', 'Default'),
+('kr', 'Default'),
+('ks', 'Default'),
+('kk', 'Default'),
+('km', 'Default'),
+('ki', 'Default'),
+('rw', 'Default'),
+('ky', 'Default'),
+('kv', 'Default'),
+('kg', 'Default'),
+('ko', 'Default'),
+('ku', 'Default'),
+('kj', 'Default'),
+('la', 'Default'),
+('lb', 'Default'),
+('lg', 'Default'),
+('li', 'Default'),
+('ln', 'Default'),
+('lo', 'Default'),
+('lt', 'Default'),
+('lu', 'Default'),
+('lv', 'Default'),
+('gv', 'Default'),
+('mk', 'Default'),
+('mg', 'Default'),
+('ms', 'Default'),
+('ml', 'Default'),
+('mt', 'Default'),
+('mi', 'Default'),
+('mr', 'Default'),
+('mh', 'Default'),
+('mn', 'Default'),
+('na', 'Default'),
+('nv', 'Default'),
+('nb', 'Default'),
+('nd', 'Default'),
+('ne', 'Default'),
+('ng', 'Default'),
+('nn', 'Default'),
+('no', 'Default'),
+('ii', 'Default'),
+('nr', 'Default'),
+('oc', 'Default'),
+('oj', 'Default'),
+('cu', 'Default'),
+('om', 'Default'),
+('or', 'Default'),
+('os', 'Default'),
+('pa', 'Default'),
+('pi', 'Default'),
+('fa', 'Default'),
+('pl', 'Default'),
+('ps', 'Default'),
+('pt', 'Default'),
+('qu', 'Default'),
+('rm', 'Default'),
+('rn', 'Default'),
+('ro', 'Default'),
+('ru', 'Default'),
+('sa', 'Default'),
+('sc', 'Default'),
+('sd', 'Default'),
+('se', 'Default'),
+('sm', 'Default'),
+('sg', 'Default'),
+('sr', 'Default'),
+('gd', 'Default'),
+('sn', 'Default'),
+('si', 'Default'),
+('sk', 'Default'),
+('sl', 'Default'),
+('so', 'Default'),
+('st', 'Default'),
+('es', 'Default'),
+('su', 'Default'),
+('sw', 'Default'),
+('ss', 'Default'),
+('sv', 'Default'),
+('ta', 'Default'),
+('te', 'Default'),
+('tg', 'Default'),
+('th', 'Default'),
+('ti', 'Default'),
+('bo', 'Default'),
+('tk', 'Default'),
+('tl', 'Default'),
+('tn', 'Default'),
+('to', 'Default'),
+('tr', 'Default'),
+('ts', 'Default'),
+('tt', 'Default'),
+('tw', 'Default'),
+('ty', 'Default'),
+('ug', 'Default'),
+('uk', 'Default'),
+('ur', 'Default'),
+('uz', 'Default'),
+('ve', 'Default'),
+('vi', 'Default'),
+('vo', 'Default'),
+('wa', 'Default'),
+('cy', 'Default'),
+('wo', 'Default'),
+('fy', 'Default'),
+('xh', 'Default'),
+('yi', 'Default'),
+('yo', 'Default'),
+('za', 'Default');
 
 /* INITIALIZE OBJECT TYPES */
 INSERT INTO object_types (id, name) VALUES
@@ -484,8 +669,8 @@ INSERT INTO users (id, email, username, encrypted_password, first_name, last_nam
 
 
 /* INITIALIZE GROUPS*/
-INSERT INTO groups (id, target_lang, native_lang, name, status) VALUES 
-  (1, 'zh', 'ru', 'Chinese', 0);
+INSERT INTO groups (id, transcription_type, target_lang, native_lang, name, status) VALUES 
+  (1, 30, 'zh', 'ru', 'Chinese', 0);
 
 INSERT INTO user_group (user_id, group_id, role, status) VALUES
   (1, 1, 0, 1),

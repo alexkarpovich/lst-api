@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/alexkarpovich/lst-api/src/internal/domain"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 )
 
@@ -43,19 +44,22 @@ type GroupMember struct {
 }
 
 type Group struct {
-	Id             *valueobject.ID `json:"id" db:"id"`
-	TargetLangCode string          `json:"targetLangCode" db:"target_lang"`
-	NativeLangCode string          `json:"nativeLangCode" db:"native_lang"`
-	Name           string          `json:"name" db:"name"`
-	Status         GroupStatus     `json:"status" db:"status"`
-	IsUntouched    bool            `json:"isUntouched"`
-	Config         *GroupConfig    `json:"config" db:"config"`
-	Members        []*GroupMember  `json:"members"`
+	Id                  *valueobject.ID           `json:"id" db:"id"`
+	TranscriptionTypeId *valueobject.ID           `json:"transcriptionTypeId" db:"transcription_type"`
+	TargetLangCode      string                    `json:"targetLangCode" db:"target_lang"`
+	NativeLangCode      string                    `json:"nativeLangCode" db:"native_lang"`
+	Name                string                    `json:"name" db:"name"`
+	Status              GroupStatus               `json:"status" db:"status"`
+	IsUntouched         bool                      `json:"isUntouched"`
+	TranscriptionType   *domain.TranscriptionType `json:"transcriptionType"`
+	Config              *GroupConfig              `json:"config" db:"config"`
+	Members             []*GroupMember            `json:"members"`
 }
 
 type GroupRepo interface {
 	Create(*valueobject.ID, Group) (*Group, error)
 	Update(Group) error
+	Get(*valueobject.ID) (*Group, error)
 	List(*valueobject.ID) ([]*Group, error)
 	MarkAsDeleted(*valueobject.ID) error
 	//FindByNode(*valueobject.ID) (*Group, error)
