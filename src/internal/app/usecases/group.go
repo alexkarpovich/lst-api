@@ -173,7 +173,7 @@ func (i *GroupInteractor) UpdateMemberRole(actorId *valueobject.ID, groupId *val
 	return nil
 }
 
-func (i *GroupInteractor) CreateSlice(groupId *valueobject.ID, s app.Node) (*app.Node, error) {
+func (i *GroupInteractor) CreateNode(groupId *valueobject.ID, s app.Node) (*app.Node, error) {
 	s.Visibility = app.NodePrivate
 	s.Name = strings.TrimSpace(s.Name)
 
@@ -191,11 +191,20 @@ func (i *GroupInteractor) CreateSlice(groupId *valueobject.ID, s app.Node) (*app
 	return slice, nil
 }
 
-func (i *GroupInteractor) ListSlices(groupId *valueobject.ID) ([]*app.FlatNode, error) {
+func (i *GroupInteractor) ListNodes(groupId *valueobject.ID) ([]*app.FlatNode, error) {
 	folders, err := i.NodeRepo.List(groupId)
 	if err != nil {
 		return nil, err
 	}
 
 	return folders, nil
+}
+
+func (i *GroupInteractor) DeleteNode(groupId *valueobject.ID, nodeId *valueobject.ID) error {
+	err := i.GroupRepo.DeleteNode(groupId, nodeId)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

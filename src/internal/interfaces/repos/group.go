@@ -222,6 +222,16 @@ func (r *GroupRepo) MarkAsDeleted(groupId *valueobject.ID) error {
 	return nil
 }
 
+func (r *GroupRepo) DeleteNode(groupId *valueobject.ID, nodeId *valueobject.ID) error {
+	query := `DELETE FROM group_node WHERE group_id=$1 AND node_id=$2`
+	_, err := r.db.Db().Exec(query, groupId, nodeId)
+	if err != nil {
+		return err
+	}
+	// TODO: delete node and all related data if node is unused by other groups
+	return nil
+}
+
 func (r *GroupRepo) FindMemberById(groupId *valueobject.ID, memberId *valueobject.ID) (*app.GroupMember, error) {
 	member := &app.GroupMember{
 		Id: memberId,

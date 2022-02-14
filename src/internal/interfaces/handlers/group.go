@@ -17,8 +17,9 @@ type GroupInteractor interface {
 	UpdateGroup(*valueobject.ID, app.Group) error
 	ListGroups(*valueobject.ID) ([]*app.Group, error)
 	MarkGroupAsDeleted(*valueobject.ID, *valueobject.ID) error
-	CreateSlice(*valueobject.ID, app.Node) (*app.Node, error)
-	ListSlices(*valueobject.ID) ([]*app.FlatNode, error)
+	CreateNode(*valueobject.ID, app.Node) (*app.Node, error)
+	ListNodes(*valueobject.ID) ([]*app.FlatNode, error)
+	DeleteNode(*valueobject.ID, *valueobject.ID) error
 	InviteUser(*valueobject.ID, *valueobject.ID, *valueobject.ID) error
 	ConfirmInvitation(*valueobject.ID, string) error
 	DetachMember(*valueobject.ID, *valueobject.ID) error
@@ -41,13 +42,14 @@ func ConfigureGroupHandler(pi GroupInteractor, r *mux.Router) {
 	h.router.HandleFunc("/me/groups", h.CreateGroup()).Methods("POST")
 	h.router.HandleFunc("/me/groups", h.ListGroups()).Methods("GET")
 	h.router.HandleFunc("/me/groups/confirm-invitation/{token}", h.ConfirmInvitation()).Methods("POST")
-	h.router.HandleFunc("/me/groups/{groupId}", h.UpdateGroup()).Methods("POST")
-	h.router.HandleFunc("/me/groups/{groupId}", h.DeleteGroup()).Methods("DELETE")
-	h.router.HandleFunc("/me/groups/{groupId}/nodes", h.CreateSlice()).Methods("POST")
-	h.router.HandleFunc("/me/groups/{groupId}/nodes", h.ListSlices()).Methods("GET")
-	h.router.HandleFunc("/me/groups/{groupId}/invite-user/{userId}", h.InviteUser()).Methods("POST")
-	h.router.HandleFunc("/me/groups/{groupId}/detach-member/{memberId}", h.DetachMember()).Methods("POST")
-	h.router.HandleFunc("/me/groups/{groupId}/update-role", h.UpdateMemberRole()).Methods("POST")
+	h.router.HandleFunc("/me/groups/{group_id}", h.UpdateGroup()).Methods("POST")
+	h.router.HandleFunc("/me/groups/{group_id}", h.DeleteGroup()).Methods("DELETE")
+	h.router.HandleFunc("/me/groups/{group_id}/nodes", h.CreateNode()).Methods("POST")
+	h.router.HandleFunc("/me/groups/{group_id}/nodes", h.ListNodes()).Methods("GET")
+	h.router.HandleFunc("/me/groups/{group_id}/nodes/{node_id}", h.DeleteNode()).Methods("DELETE")
+	h.router.HandleFunc("/me/groups/{group_id}/invite-user/{user_id}", h.InviteUser()).Methods("POST")
+	h.router.HandleFunc("/me/groups/{group_id}/detach-member/{member_id}", h.DetachMember()).Methods("POST")
+	h.router.HandleFunc("/me/groups/{group_id}/update-role", h.UpdateMemberRole()).Methods("POST")
 }
 
 func (i *groupHanlder) CreateGroup() http.HandlerFunc {
@@ -103,7 +105,7 @@ func (i *groupHanlder) UpdateGroup() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		groupIdArg, err := strconv.Atoi(vars["groupId"])
+		groupIdArg, err := strconv.Atoi(vars["group_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
 			return
@@ -143,7 +145,7 @@ func (i *groupHanlder) DeleteGroup() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		groupIdArg, err := strconv.Atoi(vars["groupId"])
+		groupIdArg, err := strconv.Atoi(vars["group_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
 			return
@@ -183,7 +185,7 @@ func (i *groupHanlder) ListGroups() http.HandlerFunc {
 	}
 }
 
-func (i *groupHanlder) CreateSlice() http.HandlerFunc {
+func (i *groupHanlder) CreateNode() http.HandlerFunc {
 	type request struct {
 		Type       app.NodeType `json:"type"`
 		Name       string       `json:"name"`
@@ -195,7 +197,7 @@ func (i *groupHanlder) CreateSlice() http.HandlerFunc {
 		var err error
 
 		vars := mux.Vars(r)
-		groupIdArg, err := strconv.Atoi(vars["groupId"])
+		groupIdArg, err := strconv.Atoi(vars["group_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
 			return
@@ -213,7 +215,7 @@ func (i *groupHanlder) CreateSlice() http.HandlerFunc {
 			Path: s.ParentPath,
 		}
 
-		node, err := i.groupInteractor.CreateSlice((*valueobject.ID)(&groupId), inNode)
+		node, err := i.groupInteractor.CreateNode(&groupId, inNode)
 		if err != nil {
 			utils.SendJsonError(w, "Create slice error", http.StatusBadRequest)
 			return
@@ -223,17 +225,17 @@ func (i *groupHanlder) CreateSlice() http.HandlerFunc {
 	}
 }
 
-func (i *groupHanlder) ListSlices() http.HandlerFunc {
+func (i *groupHanlder) ListNodes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		groupIdArg, err := strconv.Atoi(vars["groupId"])
+		groupIdArg, err := strconv.Atoi(vars["group_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
 			return
 		}
 		groupId := valueobject.ID(groupIdArg)
 
-		slices, err := i.groupInteractor.ListSlices((*valueobject.ID)(&groupId))
+		slices, err := i.groupInteractor.ListNodes(&groupId)
 		if err != nil {
 			utils.SendJsonError(w, "List slice error", http.StatusBadRequest)
 			return
@@ -243,17 +245,44 @@ func (i *groupHanlder) ListSlices() http.HandlerFunc {
 	}
 }
 
-func (i *groupHanlder) InviteUser() http.HandlerFunc {
+func (i *groupHanlder) DeleteNode() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		groupIdArg, err := strconv.Atoi(vars["groupId"])
+		groupIdArg, err := strconv.Atoi(vars["group_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
 			return
 		}
 		groupId := valueobject.ID(groupIdArg)
 
-		userIdArg, err := strconv.Atoi(vars["userId"])
+		nodeIdArg, err := strconv.Atoi(vars["node_id"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid node id", http.StatusBadRequest)
+			return
+		}
+		nodeId := valueobject.ID(nodeIdArg)
+
+		err = i.groupInteractor.DeleteNode(&groupId, &nodeId)
+		if err != nil {
+			utils.SendJsonError(w, "Delete node error", http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, "Success", http.StatusOK)
+	}
+}
+
+func (i *groupHanlder) InviteUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		groupIdArg, err := strconv.Atoi(vars["group_id"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
+			return
+		}
+		groupId := valueobject.ID(groupIdArg)
+
+		userIdArg, err := strconv.Atoi(vars["user_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid user id", http.StatusBadRequest)
 			return
@@ -300,7 +329,7 @@ func (i *groupHanlder) ConfirmInvitation() http.HandlerFunc {
 func (i *groupHanlder) DetachMember() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		groupIdArg, err := strconv.Atoi(vars["groupId"])
+		groupIdArg, err := strconv.Atoi(vars["group_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
 			return
@@ -340,7 +369,7 @@ func (i *groupHanlder) UpdateMemberRole() http.HandlerFunc {
 		var s request
 
 		vars := mux.Vars(r)
-		groupIdArg, err := strconv.Atoi(vars["groupId"])
+		groupIdArg, err := strconv.Atoi(vars["group_id"])
 		if err != nil {
 			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
 			return
