@@ -105,7 +105,7 @@ CREATE TABLE translations (
   target_id INT NOT NULL,
   native_id INT NOT NULL,
   type INT NOT NULL,
-  comment VARCHAR(128),
+  comment VARCHAR(256),
   CONSTRAINT fk_type
     FOREIGN KEY(type) 
     REFERENCES object_types(id),
@@ -675,20 +675,3 @@ INSERT INTO groups (id, transcription_type, target_lang, native_lang, name, stat
 INSERT INTO user_group (user_id, group_id, role, status) VALUES
   (1, 1, 0, 1),
   (2, 1, 2, 1);
-
-/* INITIALIZE SLICES */
-INSERT INTO nodes (id, type, name, visibility) VALUES
-  (1, 0, 'Folder 1', 1),
-  (2, 1, 'Slice 2', 1),
-  (3, 1, 'Slice 1.1', 1),
-  (4, 0, 'Folder 1.2', 1),
-  (5, 1, 'Slice 1.2.1', 1),
-  (6, 1, 'Slice 1.2.2', 1);
-
-INSERT INTO group_node (group_id, node_id, path) VALUES
-  (1, 1, ''),
-  (1, 2, ''),
-  (1, 3, '1'),
-  (1, 4, '1'),
-  (1, 5, '1.4'),
-  (1, 6, '1.4');
