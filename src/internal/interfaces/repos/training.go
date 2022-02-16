@@ -30,11 +30,11 @@ func (r *TrainingRepo) Create(inTraining app.Training) (*app.Training, error) {
 	}
 
 	query = `
-		INSERT INTO trainings (owner_id, type, slices)
-		VALUES($1, $2, $3)
+		INSERT INTO trainings (owner_id, type, transcription_type, slices)
+		VALUES($1, $2, $3, $4)
 		RETURNING id
 	`
-	err = tx.QueryRow(query, training.OwnerId, training.Type, pq.Array(training.Slices)).
+	err = tx.QueryRow(query, training.OwnerId, training.Type, training.TranscriptionTypeId, pq.Array(training.Slices)).
 		Scan(&training.Id)
 	if err != nil {
 		tx.Rollback()
@@ -86,13 +86,13 @@ func (r *TrainingRepo) getMeta(trainingId *valueobject.ID) (*app.TrainingMeta, e
 
 func (r *TrainingRepo) Get(trainingId *valueobject.ID) (*app.Training, error) {
 	query := `
-		SELECT id, owner_id, type, slices FROM trainings
+		SELECT id, owner_id, type, transcription_type, slices FROM trainings
 		WHERE id=$1
 	`
 	training := &app.Training{}
 	sliceArr := pq.Int64Array{}
 	err := r.db.Db().QueryRow(query, trainingId).
-		Scan(&training.Id, &training.OwnerId, &training.Type, &sliceArr)
+		Scan(&training.Id, &training.OwnerId, &training.Type, &training.TranscriptionTypeId, &sliceArr)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (r *TrainingRepo) Get(trainingId *valueobject.ID) (*app.Training, error) {
 
 func (r *TrainingRepo) List(ownerId *valueobject.ID) ([]*app.Training, error) {
 	query := `
-		SELECT id, type, slices FROM trainings
+		SELECT id, type, transcription_type, slices FROM trainings
 		WHERE owner_id=$1
 	`
 	trainings := []*app.Training{}
@@ -123,7 +123,7 @@ func (r *TrainingRepo) List(ownerId *valueobject.ID) ([]*app.Training, error) {
 	for rows.Next() {
 		sliceArr := pq.Int64Array{}
 		training := &app.Training{OwnerId: ownerId}
-		rows.Scan(&training.Id, &training.Type, &sliceArr)
+		rows.Scan(&training.Id, &training.Type, &training.TranscriptionTypeId, &sliceArr)
 		trainings = append(trainings, training)
 
 		for _, sliceId := range sliceArr {
@@ -141,13 +141,13 @@ func (r *TrainingRepo) List(ownerId *valueobject.ID) ([]*app.Training, error) {
 
 func (r *TrainingRepo) GetByItemId(itemId *valueobject.ID) (*app.Training, error) {
 	query := `
-		SELECT id, owner_id, type, slices FROM trainings
+		SELECT id, owner_id, type, transcription_type, slices FROM trainings
 		WHERE id = (SELECT training_id FROM training_items WHERE id=$1)
 	`
 	training := &app.Training{}
 	sliceArr := pq.Int64Array{}
 	err := r.db.Db().QueryRow(query, itemId).
-		Scan(&training.Id, &training.OwnerId, &training.Type, &sliceArr)
+		Scan(&training.Id, &training.OwnerId, &training.Type, &training.TranscriptionTypeId, &sliceArr)
 	if err != nil {
 		return nil, err
 	}
@@ -168,9 +168,9 @@ func (r *TrainingRepo) GetBySlices(inTraining app.Training) (*app.Training, erro
 	training := &inTraining
 	query := `
 		SELECT id FROM trainings
-		WHERE owner_id=? AND type=? AND slices = array[?]::smallint[]
+		WHERE owner_id=? AND type=? AND transcription_type=? AND slices = array[?]::smallint[]
 	`
-	query, args, err := sqlx.In(query, inTraining.OwnerId, inTraining.Type, inTraining.Slices)
+	query, args, err := sqlx.In(query, inTraining.OwnerId, inTraining.Type, inTraining.TranscriptionTypeId, inTraining.Slices)
 	query = r.db.Db().Rebind(query)
 	err = r.db.Db().QueryRow(query, args...).
 		Scan(&training.Id)
@@ -217,7 +217,7 @@ func (r *TrainingRepo) ItemAnswers(itemId *valueobject.ID) ([]*app.TrainingAnswe
 		return nil, err
 	}
 	query := `
-		SELECT e.id, e.value FROM expressions e
+		SELECT e.id, e.value, t.id FROM expressions e
 		LEFT JOIN translations t ON t.target_id=e.id
 		LEFT JOIN node_translation nt ON nt.translation_id=t.id
 		LEFT JOIN training_items ti ON ti.expression_id=t.native_id
@@ -226,7 +226,28 @@ func (r *TrainingRepo) ItemAnswers(itemId *valueobject.ID) ([]*app.TrainingAnswe
 	answers := []*app.TrainingAnswer{}
 	query, args, err := sqlx.In(query, itemId, training.Slices)
 	query = r.db.Db().Rebind(query)
-	err = r.db.Db().Select(&answers, query, args...)
+	rows, err := r.db.Db().Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	var translationId *valueobject.ID
+	for rows.Next() {
+		answer := &app.TrainingAnswer{}
+		rows.Scan(&answer.Id, &answer.Value, &translationId)
+
+		query = `
+			SELECT t.id, t.value FROM transcriptions t
+			LEFT JOIN translation_transcription tt ON tt.transcription_id=t.id
+			WHERE tt.translation_id=$1 AND t.type=$2
+		`
+		transcriptions := []*app.Transcription{}
+		err = r.db.Db().Select(&transcriptions, query, translationId, training.TranscriptionTypeId)
+
+		answer.Transcriptions = transcriptions
+
+		answers = append(answers, answer)
+	}
 
 	return answers, nil
 }

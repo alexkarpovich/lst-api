@@ -6,6 +6,7 @@ import (
 	"github.com/alexkarpovich/lst-api/src/internal/app"
 	"github.com/alexkarpovich/lst-api/src/internal/app/services"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
+	"github.com/alexkarpovich/lst-api/src/internal/interfaces/services/training"
 )
 
 type TrainingInteractor struct {
@@ -38,12 +39,8 @@ func (i *TrainingInteractor) GetOrCreate(inTraining app.Training) (*app.Training
 		return trn, nil
 	}
 
-	trnWithItems, err := i.TrainingService.Build(inTraining)
-	if err != nil {
-		return nil, err
-	}
-
-	training, err := i.TrainingRepo.Create(*trnWithItems)
+	trainingService := training.NewService(i.NodeRepo, i.TrainingRepo, inTraining)
+	training, err := trainingService.Create()
 	if err != nil {
 		return nil, err
 	}
@@ -92,16 +89,17 @@ func (i *TrainingInteractor) Reset(actorId *valueobject.ID, trainingId *valueobj
 }
 
 func (i *TrainingInteractor) Next(actorId *valueobject.ID, trainingId *valueobject.ID) (*app.TrainingItem, error) {
-	training, err := i.TrainingRepo.Get(trainingId)
+	trn, err := i.TrainingRepo.Get(trainingId)
 	if err != nil {
 		return nil, err
 	}
 
-	if *training.OwnerId != *actorId {
+	if *trn.OwnerId != *actorId {
 		return nil, errors.New("Forbidden, only training owner can do this.")
 	}
 
-	trainingItem, err := i.TrainingRepo.NextItem(trainingId)
+	trainingService := training.NewService(i.NodeRepo, i.TrainingRepo, *trn)
+	trainingItem, err := trainingService.NextItem()
 	if err != nil {
 		return nil, err
 	}
@@ -123,16 +121,17 @@ func (i *TrainingInteractor) GetItem(actorId *valueobject.ID, itemId *valueobjec
 }
 
 func (i *TrainingInteractor) ItemAnswers(actorId *valueobject.ID, itemId *valueobject.ID) ([]*app.TrainingAnswer, error) {
-	training, err := i.TrainingRepo.GetByItemId(itemId)
+	trn, err := i.TrainingRepo.GetByItemId(itemId)
 	if err != nil {
 		return nil, err
 	}
 
-	if *training.OwnerId != *actorId {
+	if *trn.OwnerId != *actorId {
 		return nil, errors.New("Forbidden, only training owner can do this.")
 	}
 
-	answers, err := i.TrainingRepo.ItemAnswers(itemId)
+	trainingService := training.NewService(i.NodeRepo, i.TrainingRepo, *trn)
+	answers, err := trainingService.ItemAnswers(itemId)
 	if err != nil {
 		return nil, err
 	}

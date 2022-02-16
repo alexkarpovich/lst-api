@@ -19,8 +19,9 @@ type TrainingExpression struct {
 }
 
 type TrainingAnswer struct {
-	Id    *valueobject.ID `json:"id"`
-	Value string          `json:"value"`
+	Id             *valueobject.ID  `json:"id"`
+	Value          string           `json:"value"`
+	Transcriptions []*Transcription `json:"transcriptions"`
 }
 
 type TrainingMeta struct {
@@ -40,12 +41,13 @@ type TrainingItem struct {
 }
 
 type Training struct {
-	Id      *valueobject.ID  `json:"id" db:"id"`
-	OwnerId *valueobject.ID  `json:"ownerId" db:"owner_id"`
-	Type    TrainingType     `json:"type" db:"type"`
-	Slices  []valueobject.ID `json:"slices" db:"slices"`
-	Items   []*TrainingItem  `json:"-"`
-	Meta    *TrainingMeta    `json:"meta" db:"meta"`
+	Id                  *valueobject.ID  `json:"id" db:"id"`
+	OwnerId             *valueobject.ID  `json:"ownerId" db:"owner_id"`
+	Type                TrainingType     `json:"type" db:"type"`
+	TranscriptionTypeId *valueobject.ID  `json:"transcriptionTypeId" db:"transcription_type"`
+	Slices              []valueobject.ID `json:"slices" db:"slices"`
+	Items               []*TrainingItem  `json:"-"`
+	Meta                *TrainingMeta    `json:"meta" db:"meta"`
 }
 
 type TrainingRepo interface {

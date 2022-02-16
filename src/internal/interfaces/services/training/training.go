@@ -2,23 +2,31 @@ package training
 
 import (
 	"github.com/alexkarpovich/lst-api/src/internal/app"
+	"github.com/alexkarpovich/lst-api/src/internal/app/services"
+	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
 )
 
 type TrainingService struct {
-	NodeRepo app.NodeRepo
+	Training     app.Training
+	NodeRepo     app.NodeRepo
+	TrainingRepo app.TrainingRepo
 }
 
-func (s *TrainingService) Build(trn app.Training) (*app.Training, error) {
+func NewService(nr app.NodeRepo, tr app.TrainingRepo, trn app.Training) services.TrainingService {
 	if trn.Type == app.TrainingDirect {
-		directService := &trainingDirectService{s}
-
-		return directService.Build(trn)
+		return &trainingDirectService{&TrainingService{trn, nr, tr}}
 	}
 	if trn.Type == app.TrainingCycles {
-		throughService := &trainingCyclesService{s}
-
-		return throughService.Build(trn)
+		return &trainingCyclesService{&TrainingService{trn, nr, tr}}
 	}
 
-	return nil, nil
+	return nil
+}
+
+func (s *TrainingService) NextItem() (*app.TrainingItem, error) {
+	return s.TrainingRepo.NextItem(s.Training.Id)
+}
+
+func (s *TrainingService) ItemAnswers(itemId *valueobject.ID) ([]*app.TrainingAnswer, error) {
+	return s.TrainingRepo.ItemAnswers(itemId)
 }

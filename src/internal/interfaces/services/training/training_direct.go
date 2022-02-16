@@ -8,9 +8,9 @@ type trainingDirectService struct {
 	*TrainingService
 }
 
-func (s *trainingDirectService) Build(trn app.Training) (*app.Training, error) {
-	training := &trn
-	expressions, err := s.NodeRepo.NativeExpressions(trn.Slices)
+func (s *trainingDirectService) Create() (*app.Training, error) {
+	training := s.Training
+	expressions, err := s.NodeRepo.NativeExpressions(training.Slices)
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +19,7 @@ func (s *trainingDirectService) Build(trn app.Training) (*app.Training, error) {
 
 	for i := 0; i < xCount; i++ {
 		trnItem := &app.TrainingItem{
-			TrainingId:   trn.Id,
+			TrainingId:   training.Id,
 			ExpressionId: expressions[i].Id,
 			Stage:        1,
 			Cycle:        1,
@@ -37,5 +37,5 @@ func (s *trainingDirectService) Build(trn app.Training) (*app.Training, error) {
 
 	training.Meta = meta
 
-	return training, nil
+	return s.TrainingRepo.Create(training)
 }

@@ -16,9 +16,9 @@ type trainingCyclesService struct {
 	*TrainingService
 }
 
-func (s *trainingCyclesService) Build(trn app.Training) (*app.Training, error) {
-	training := &trn
-	expressions, err := s.NodeRepo.NativeExpressions(trn.Slices)
+func (s *trainingCyclesService) Create() (*app.Training, error) {
+	training := s.Training
+	expressions, err := s.NodeRepo.NativeExpressions(training.Slices)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (s *trainingCyclesService) Build(trn app.Training) (*app.Training, error) {
 			cycle := uint(math.Round(float64(i) / float64(chunkSize)))
 
 			trnItem := &app.TrainingItem{
-				TrainingId:   trn.Id,
+				TrainingId:   s.Training.Id,
 				ExpressionId: expressions[i].Id,
 				Stage:        stage,
 				Cycle:        cycle,
@@ -57,5 +57,5 @@ func (s *trainingCyclesService) Build(trn app.Training) (*app.Training, error) {
 
 	training.Meta = meta
 
-	return training, nil
+	return s.TrainingRepo.Create(training)
 }

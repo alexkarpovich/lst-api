@@ -34,6 +34,30 @@ CREATE TABLE users (
 CREATE TRIGGER updated_at BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
 
+DROP TABLE IF EXISTS lang_levels;
+CREATE TABLE lang_levels (
+  id serial PRIMARY KEY,
+  name VARCHAR(64) NOT NULL,
+  description VARCHAR(512)
+);
+
+DROP TABLE IF EXISTS user_langs;
+CREATE TABLE user_langs (
+  id serial PRIMARY KEY,
+  user_id INT NOT NULL,
+  lang VARCHAR(2) NOT NULL,
+  level_id INT NOT NULL,
+  CONSTRAINT fk_user
+    FOREIGN KEY(user_id) 
+    REFERENCES users(id),
+  CONSTRAINT fk_lang
+    FOREIGN KEY(lang) 
+    REFERENCES languages(code),
+  CONSTRAINT fk_level
+    FOREIGN KEY(level_id) 
+    REFERENCES lang_levels(id)
+);
+
 DROP TABLE IF EXISTS transcription_types;
 CREATE TABLE transcription_types (
   id serial PRIMARY KEY,
@@ -264,8 +288,12 @@ CREATE TABLE trainings (
   id serial PRIMARY KEY,
   owner_id INT NOT NULL,
   type SMALLINT NOT NULL,
+  transcription_type INT NOT NULL,
   slices SMALLINT[] NOT NULL,
-  UNIQUE(owner_id, type, slices)
+  UNIQUE(owner_id, type, transcription_type, slices),
+  CONSTRAINT fk_transcription_type
+    FOREIGN KEY(transcription_type) 
+    REFERENCES transcription_types(id)
 );
 
 DROP TABLE IF EXISTS training_items;
@@ -662,11 +690,39 @@ INSERT INTO object_types (id, name) VALUES
   (2, 'text'),
   (3, 'article');
 
+INSERT INTO lang_levels (id, name, description) VALUES
+  (1, 'A1', '<ul><li>Can understand and use familiar everyday expressions and very basic phrases aimed at the satisfaction of needs of a concrete type.</li>
+<li>Can introduce themselves and others and can ask and answer questions about personal details such as where they live, people they know and things they have.</li>
+<li>Can interact in a simple way provided the other person talks slowly and clearly and is prepared to help.</li></ul>'),
+  (2, 'A2', '<ul><li>Can understand sentences and frequently used expressions related to areas of most immediate relevance (e.g. very basic personal and family information, shopping, local geography, employment).</li>
+<li>Can communicate in simple and routine tasks requiring a simple and direct exchange of information on familiar and routine matters.</li>
+<li>Can describe in simple terms aspects of their background, immediate environment and matters in areas of immediate need.</li></ul>'),
+  (3, 'B1', '<ul><li>Can understand the main points of clear standard input on familiar matters regularly encountered in work, school, leisure, etc.</li>
+<li>Can deal with most situations likely to arise while travelling in an area where the language is spoken.</li>
+<li>Can produce simple connected text on topics that are familiar or of personal interest.</li>
+<li>Can describe experiences and events, dreams, hopes and ambitions and briefly give reasons and explanations for opinions and plans.</li></ul>'),
+  (4, 'B2', '<ul><li>Can understand the main ideas of complex text on both concrete and abstract topics, including technical discussions in their field of specialisation.</li>
+<li>Can interact with a degree of fluency and spontaneity that makes regular interaction with native speakers quite possible without strain for either party.</li>
+<li>Can produce clear, detailed text on a wide range of subjects and explain a viewpoint on a topical issue giving the advantages and disadvantages of various options.</li></ul>'),
+  (5, 'C1', '<ul><li>Can understand a wide range of demanding, longer clauses and recognise implicit meaning.</li>
+<li>Can express ideas fluently and spontaneously without much obvious searching for expressions.</li>
+<li>Can use language flexibly and effectively for social, academic and professional purposes.</li>
+<li>Can produce clear, well-structured, detailed text on complex subjects, showing controlled use of organisational patterns, connectors and cohesive devices.</li></ul>'),
+  (6, 'C2', '<ul><li>Can understand with ease virtually everything heard or read.</li>
+<li>Can summarise information from different spoken and written sources, reconstructing arguments and accounts in a coherent presentation.</li>
+<li>Can express themselves spontaneously, very fluently and precisely, differentiating finer shades of meaning even in the most complex situations.</li></ul>'),
+  (7, 'Native', '');
+
 /* INITIALIZE USERS */
 INSERT INTO users (id, email, username, encrypted_password, first_name, last_name, token, status, token_expires_at) VALUES
   (1, 'admin@akarpovich.com', 'admin', '$2a$14$1uz8bdnCERhrFJ1qDZ0gwOxxmHy4NuYsAu2mckpzL3r5C7WbO3nCO', '', '', '', 2, NOW()),
   (2, 'alexsure.k@gmail.com', 'akarpovich', '$2a$14$1uz8bdnCERhrFJ1qDZ0gwOxxmHy4NuYsAu2mckpzL3r5C7WbO3nCO', 'Aliaksandr', 'Karpovich', '', 2, NOW());
 
+INSERT INTO user_langs (user_id, lang, level_id) VALUES
+  (2, 'ru', 7),
+  (2, 'be', 7),
+  (2, 'en', 4),
+  (2, 'zh', 2);
 
 /* INITIALIZE GROUPS*/
 INSERT INTO groups (id, transcription_type, target_lang, native_lang, name, status) VALUES 

@@ -1,7 +1,12 @@
 package services
 
-import "github.com/alexkarpovich/lst-api/src/internal/app"
+import (
+	"github.com/alexkarpovich/lst-api/src/internal/app"
+	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
+)
 
 type TrainingService interface {
-	Build(app.Training) (*app.Training, error)
+	Create() (*app.Training, error)
+	NextItem() (*app.TrainingItem, error)
+	ItemAnswers(*valueobject.ID) ([]*app.TrainingAnswer, error)
 }
