@@ -300,16 +300,16 @@ DROP TABLE IF EXISTS training_items;
 CREATE TABLE training_items (
   id serial PRIMARY KEY,
   training_id INT NOT NULL,
-  expression_id INT NOT NULL,
+  translation_id INT NOT NULL,
   stage SMALLINT,
   cycle SMALLINT,
   complete BOOLEAN,
   CONSTRAINT fk_training
     FOREIGN KEY(training_id) 
     REFERENCES trainings(id),
-  CONSTRAINT fk_expression
-    FOREIGN KEY(expression_id) 
-    REFERENCES expressions(id)
+  CONSTRAINT fk_translation
+    FOREIGN KEY(translation_id) 
+    REFERENCES translations(id)
 );
 
 /* INITIALIZE LANGUAGES */

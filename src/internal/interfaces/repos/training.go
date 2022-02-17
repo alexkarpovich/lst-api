@@ -236,16 +236,19 @@ func (r *TrainingRepo) ItemAnswers(itemId *valueobject.ID) ([]*app.TrainingAnswe
 		answer := &app.TrainingAnswer{}
 		rows.Scan(&answer.Id, &answer.Value, &translationId)
 
+		query = `SELECT comment FROM translations WHERE id=$1`
+		r.db.Db().QueryRow(query, translationId).
+			Scan(&answer.Comment)
+
 		query = `
 			SELECT t.id, t.value FROM transcriptions t
 			LEFT JOIN translation_transcription tt ON tt.transcription_id=t.id
 			WHERE tt.translation_id=$1 AND t.type=$2
 		`
 		transcriptions := []*app.Transcription{}
-		err = r.db.Db().Select(&transcriptions, query, translationId, training.TranscriptionTypeId)
+		r.db.Db().Select(&transcriptions, query, translationId, training.TranscriptionTypeId)
 
 		answer.Transcriptions = transcriptions
-
 		answers = append(answers, answer)
 	}
 

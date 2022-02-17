@@ -14,8 +14,9 @@ const (
 )
 
 type TrainingExpression struct {
-	Id    *valueobject.ID `json:"id"`
-	Value string          `json:"value"`
+	Id      *valueobject.ID `json:"id"`
+	Value   string          `json:"value"`
+	Comment string          `json:"comment"`
 }
 
 type TrainingAnswer struct {
@@ -31,13 +32,13 @@ type TrainingMeta struct {
 }
 
 type TrainingItem struct {
-	Id           *valueobject.ID     `json:"id" db:"id"`
-	TrainingId   *valueobject.ID     `json:"trainingId" db:"training_id"`
-	ExpressionId *valueobject.ID     `json:"expressionId" db:"expression_id"`
-	Stage        uint                `json:"stage" db:"stage"`
-	Cycle        uint                `json:"cycle" db:"cycle"`
-	Complete     bool                `json:"complete" db:"complete"`
-	Expression   *TrainingExpression `json:"expression"`
+	Id            *valueobject.ID     `json:"id" db:"id"`
+	TrainingId    *valueobject.ID     `json:"trainingId" db:"training_id"`
+	TranslationId *valueobject.ID     `json:"translationId" db:"translation_id"`
+	Stage         uint                `json:"stage" db:"stage"`
+	Cycle         uint                `json:"cycle" db:"cycle"`
+	Complete      bool                `json:"complete" db:"complete"`
+	Expression    *TrainingExpression `json:"expression"`
 }
 
 type Training struct {
