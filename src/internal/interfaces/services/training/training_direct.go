@@ -10,20 +10,20 @@ type trainingDirectService struct {
 
 func (s *trainingDirectService) Create() (*app.Training, error) {
 	training := s.Training
-	expressions, err := s.NodeRepo.NativeExpressions(training.Slices)
+	translations, err := s.NodeRepo.TranslationsBySlices(training.Slices)
 	if err != nil {
 		return nil, err
 	}
 
-	xCount := len(expressions)
+	xCount := len(translations)
 
 	for i := 0; i < xCount; i++ {
 		trnItem := &app.TrainingItem{
-			TrainingId:   training.Id,
-			ExpressionId: expressions[i].Id,
-			Stage:        1,
-			Cycle:        1,
-			Complete:     false,
+			TrainingId:    training.Id,
+			TranslationId: translations[i].Id,
+			Stage:         1,
+			Cycle:         1,
+			Complete:      false,
 		}
 
 		training.Items = append(training.Items, trnItem)

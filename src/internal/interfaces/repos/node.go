@@ -443,27 +443,25 @@ func (r *NodeRepo) DetachExpression(nodeId *valueobject.ID, expressionId *valueo
 	return nil
 }
 
-func (r *NodeRepo) NativeExpressions(sliceIds []valueobject.ID) ([]*app.Expression, error) {
+func (r *NodeRepo) TranslationsBySlices(sliceIds []valueobject.ID) ([]*app.Translation, error) {
 	var query string
 	var err error
 
-	expressions := []*app.Expression{}
+	translations := []*app.Translation{}
 	query = `
-		SELECT id, value FROM expressions e
-		WHERE id IN (
-			SELECT native_id FROM translations t
-			LEFT JOIN node_translation nt ON nt.translation_id=t.id
-			WHERE nt.node_id IN (?)
-		);
+		SELECT t.id, e.value, t.comment FROM translations t
+		LEFT JOIN expressions e ON e.id=t.native_id
+		LEFT JOIN node_translation nt ON nt.translation_id=t.id
+		WHERE nt.node_id IN (?)
 	`
 	query, args, err := sqlx.In(query, sliceIds)
 	query = r.db.Db().Rebind(query)
-	err = r.db.Db().Select(&expressions, query, args...)
+	err = r.db.Db().Select(&translations, query, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	return expressions, nil
+	return translations, nil
 }
 
 func (r *NodeRepo) AvailableTranslations(nodeId *valueobject.ID, expressionId *valueobject.ID) ([]*app.Translation, error) {

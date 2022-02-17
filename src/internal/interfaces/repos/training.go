@@ -42,8 +42,8 @@ func (r *TrainingRepo) Create(inTraining app.Training) (*app.Training, error) {
 	}
 
 	query = fmt.Sprintf(`
-		INSERT INTO training_items (training_id, expression_id, stage, cycle, complete)
-		VALUES (%d, :expression_id, :stage, :cycle, :complete)
+		INSERT INTO training_items (training_id, translation_id, stage, cycle, complete)
+		VALUES (%d, :translation_id, :stage, :cycle, :complete)
 	`, *training.Id)
 	_, err = tx.NamedExec(query, training.Items)
 	if err != nil {
@@ -188,8 +188,9 @@ func (r *TrainingRepo) GetBySlices(inTraining app.Training) (*app.Training, erro
 
 func (r *TrainingRepo) NextItem(trainingId *valueobject.ID) (*app.TrainingItem, error) {
 	query := `
-		SELECT ti.id, ti.expression_id, ti.stage, ti.cycle, e.value FROM training_items ti
-		LEFT JOIN expressions e ON e.id=ti.expression_id
+		SELECT ti.id, ti.translation_id, ti.stage, ti.cycle, e.value, t.comment FROM training_items ti
+		LEFT JOIN translations t ON t.id=ti.translation_id
+		LEFT JOIN expressions e ON e.id=t.native_id
 		WHERE training_id=$1 AND complete=FALSE AND cycle = (
 			SELECT MIN(cycle) FROM training_items WHERE training_id=$1 AND complete=FALSE
 		)
@@ -201,11 +202,11 @@ func (r *TrainingRepo) NextItem(trainingId *valueobject.ID) (*app.TrainingItem, 
 	}
 	expr := &app.TrainingExpression{}
 	err := r.db.Db().QueryRow(query, trainingId).
-		Scan(&trainingItem.Id, &trainingItem.ExpressionId, &trainingItem.Stage, &trainingItem.Cycle, &expr.Value)
+		Scan(&trainingItem.Id, &trainingItem.TranslationId, &trainingItem.Stage, &trainingItem.Cycle, &expr.Value, &expr.Comment)
 	if err != nil {
 		return nil, err
 	}
-	expr.Id = trainingItem.ExpressionId
+	expr.Id = trainingItem.TranslationId
 	trainingItem.Expression = expr
 
 	return trainingItem, nil
@@ -220,7 +221,7 @@ func (r *TrainingRepo) ItemAnswers(itemId *valueobject.ID) ([]*app.TrainingAnswe
 		SELECT e.id, e.value, t.id FROM expressions e
 		LEFT JOIN translations t ON t.target_id=e.id
 		LEFT JOIN node_translation nt ON nt.translation_id=t.id
-		LEFT JOIN training_items ti ON ti.expression_id=t.native_id
+		LEFT JOIN training_items ti ON ti.translation_id=t.id
 		WHERE ti.id=? AND nt.node_id IN (?)
 	`
 	answers := []*app.TrainingAnswer{}
@@ -235,10 +236,6 @@ func (r *TrainingRepo) ItemAnswers(itemId *valueobject.ID) ([]*app.TrainingAnswe
 	for rows.Next() {
 		answer := &app.TrainingAnswer{}
 		rows.Scan(&answer.Id, &answer.Value, &translationId)
-
-		query = `SELECT comment FROM translations WHERE id=$1`
-		r.db.Db().QueryRow(query, translationId).
-			Scan(&answer.Comment)
 
 		query = `
 			SELECT t.id, t.value FROM transcriptions t

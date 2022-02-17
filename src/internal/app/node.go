@@ -104,7 +104,7 @@ type NodeRepo interface {
 	Update(FlatNode) error
 	AttachExpression(*valueobject.ID, Expression) (*Expression, error)
 	DetachExpression(*valueobject.ID, *valueobject.ID) error
-	NativeExpressions([]valueobject.ID) ([]*Expression, error)
+	TranslationsBySlices([]valueobject.ID) ([]*Translation, error)
 	AvailableTranslations(*valueobject.ID, *valueobject.ID) ([]*Translation, error)
 	AttachTranslation(*valueobject.ID, *valueobject.ID, Translation) (*Translation, error)
 	DetachTranslation(*valueobject.ID, *valueobject.ID) error
