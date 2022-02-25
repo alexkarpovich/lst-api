@@ -200,6 +200,26 @@ func (i *GroupInteractor) ListNodes(groupId *valueobject.ID) ([]*app.FlatNode, e
 	return folders, nil
 }
 
+func (i *GroupInteractor) MoveNode(actorId *valueobject.ID, groupId *valueobject.ID, node app.FlatNode, nodeOrder []*valueobject.ID) error {
+	var err error
+
+	actor, err := i.GroupRepo.FindMemberById(groupId, actorId)
+	if err != nil {
+		return err
+	}
+
+	if actor.Role == app.UserReader {
+		return errors.New("Forbidden, only non-reader user of a group can change node order.")
+	}
+
+	err = i.GroupRepo.MoveNode(groupId, node, nodeOrder)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (i *GroupInteractor) DeleteNode(groupId *valueobject.ID, nodeId *valueobject.ID) error {
 	err := i.GroupRepo.DeleteNode(groupId, nodeId)
 	if err != nil {

@@ -62,6 +62,7 @@ type GroupRepo interface {
 	Get(*valueobject.ID) (*Group, error)
 	List(*valueobject.ID) ([]*Group, error)
 	MarkAsDeleted(*valueobject.ID) error
+	MoveNode(*valueobject.ID, FlatNode, []*valueobject.ID) error
 	DeleteNode(*valueobject.ID, *valueobject.ID) error
 	FindMemberById(*valueobject.ID, *valueobject.ID) (*GroupMember, error)
 	FindMemberByNodeId(*valueobject.ID, *valueobject.ID) (*GroupMember, error)

@@ -3,8 +3,6 @@ package repos
 import (
 	"database/sql"
 	"log"
-	"strconv"
-	"strings"
 
 	"github.com/alexkarpovich/lst-api/src/internal/app"
 	"github.com/alexkarpovich/lst-api/src/internal/domain/valueobject"
@@ -280,8 +278,6 @@ func (r *NodeRepo) GetGroupByNode(nodeId *valueobject.ID) (*app.Group, error) {
 }
 
 func (r *NodeRepo) List(groupId *valueobject.ID) ([]*app.FlatNode, error) {
-	var result []*app.FlatNode
-	path_map := make(map[valueobject.ID]*app.FlatNode)
 	nodes := []*app.FlatNode{}
 
 	err := r.db.Db().Select(&nodes, `
@@ -301,23 +297,7 @@ func (r *NodeRepo) List(groupId *valueobject.ID) ([]*app.FlatNode, error) {
 		return nil, err
 	}
 
-	for _, node := range nodes {
-		if len(node.Path) == 0 {
-			result = append(result, node)
-		} else {
-			nodes := strings.Split(node.Path, ".")
-			parentIdx, _ := strconv.Atoi(nodes[len(nodes)-1])
-			parentId := valueobject.ID(parentIdx)
-
-			if s, ok := path_map[parentId]; ok {
-				s.Children = append(s.Children, node)
-			}
-		}
-
-		path_map[*node.Id] = node
-	}
-
-	return result, nil
+	return nodes, nil
 }
 
 func (r *NodeRepo) FilterSliceIds(sliceIds []valueobject.ID) ([]valueobject.ID, error) {

@@ -21,5 +21,9 @@ RUN chmod +x /dlv.sh
 ENTRYPOINT [ "/dlv.sh" ]
 
 FROM alpine:3.14 as prod
-COPY --from=build-env /usr/app /
-CMD ./usr/app
+
+COPY --from=debug /usr/app /usr/app
+COPY ./wait-for-db.sh /
+RUN chmod +x /wait-for-db.sh
+
+CMD /wait-for-db.sh /usr/app

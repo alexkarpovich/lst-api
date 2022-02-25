@@ -81,7 +81,7 @@ func (r *GroupRepo) Update(obj app.Group) error {
 
 		_, err = r.db.Db().Exec(query, obj.Name, obj.TranscriptionTypeId, obj.TargetLangCode, obj.NativeLangCode, obj.Id)
 	} else {
-		query = `UPDATE groups SET name=$1, transcription_type=$2 WHERE id=$3`
+		query = `UPDATE groups SET name=$1, transcription_type=$2 WHERE id=$4`
 
 		_, err = r.db.Db().Exec(query, obj.Name, obj.TranscriptionTypeId, obj.Id)
 	}
@@ -218,6 +218,43 @@ func (r *GroupRepo) MarkAsDeleted(groupId *valueobject.ID) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (r *GroupRepo) MoveNode(groupId *valueobject.ID, node app.FlatNode, nodeOrder []*valueobject.ID) error {
+	group, err := r.Get(groupId)
+	if err != nil {
+		return err
+	}
+
+	if group.Config == nil {
+		group.Config = &app.GroupConfig{
+			NodeOrder: nodeOrder,
+		}
+	} else {
+		group.Config.NodeOrder = nodeOrder
+	}
+
+	tx, err := r.db.Db().Begin()
+	if err != nil {
+		return err
+	}
+	query := `UPDATE groups SET config=$1 WHERE id=$2`
+	_, err = tx.Exec(query, group.Config, groupId)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	query = `UPDATE group_node SET path=$1 WHERE group_id=$2 AND node_id=$3`
+	_, err = tx.Exec(query, node.Path, groupId, node.Id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
 
 	return nil
 }

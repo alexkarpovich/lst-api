@@ -19,6 +19,7 @@ type GroupInteractor interface {
 	MarkGroupAsDeleted(*valueobject.ID, *valueobject.ID) error
 	CreateNode(*valueobject.ID, app.Node) (*app.Node, error)
 	ListNodes(*valueobject.ID) ([]*app.FlatNode, error)
+	MoveNode(*valueobject.ID, *valueobject.ID, app.FlatNode, []*valueobject.ID) error
 	DeleteNode(*valueobject.ID, *valueobject.ID) error
 	InviteUser(*valueobject.ID, *valueobject.ID, *valueobject.ID) error
 	ConfirmInvitation(*valueobject.ID, string) error
@@ -47,6 +48,7 @@ func ConfigureGroupHandler(pi GroupInteractor, r *mux.Router) {
 	h.router.HandleFunc("/me/groups/{group_id}/nodes", h.CreateNode()).Methods("POST")
 	h.router.HandleFunc("/me/groups/{group_id}/nodes", h.ListNodes()).Methods("GET")
 	h.router.HandleFunc("/me/groups/{group_id}/nodes/{node_id}", h.DeleteNode()).Methods("DELETE")
+	h.router.HandleFunc("/me/groups/{group_id}/move-node", h.MoveNode()).Methods("POST")
 	h.router.HandleFunc("/me/groups/{group_id}/invite-user/{user_id}", h.InviteUser()).Methods("POST")
 	h.router.HandleFunc("/me/groups/{group_id}/detach-member/{member_id}", h.DetachMember()).Methods("POST")
 	h.router.HandleFunc("/me/groups/{group_id}/update-role", h.UpdateMemberRole()).Methods("POST")
@@ -242,6 +244,51 @@ func (i *groupHanlder) ListNodes() http.HandlerFunc {
 		}
 
 		utils.SendJson(w, slices, http.StatusOK)
+	}
+}
+
+func (i *groupHanlder) MoveNode() http.HandlerFunc {
+	type request struct {
+		NodeId     *valueobject.ID   `json:"nodeId"`
+		ParentPath string            `json:"parentPath"`
+		NodeOrder  []*valueobject.ID `json:"nodeOrder"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		var s request
+		var err error
+
+		vars := mux.Vars(r)
+		groupIdArg, err := strconv.Atoi(vars["group_id"])
+		if err != nil {
+			utils.SendJsonError(w, "Invalid group id", http.StatusBadRequest)
+			return
+		}
+		groupId := valueobject.ID(groupIdArg)
+
+		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
+			utils.SendJsonError(w, "Invalid request data", http.StatusBadRequest)
+			return
+		}
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			log.Printf("error group list user context")
+			return
+		}
+
+		inNode := app.FlatNode{
+			Id:   s.NodeId,
+			Path: s.ParentPath,
+		}
+
+		err = i.groupInteractor.MoveNode(user.Id, &groupId, inNode, s.NodeOrder)
+		if err != nil {
+			utils.SendJsonError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		utils.SendJson(w, "Success", http.StatusOK)
 	}
 }
 

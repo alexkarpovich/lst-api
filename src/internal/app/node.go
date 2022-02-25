@@ -92,7 +92,6 @@ type FlatNode struct {
 	Path       string          `json:"path" db:"path"`
 	Count      uint            `json:"count" db:"count"`
 	Visibility NodeVisibility  `json:"visibility" db:"visibility"`
-	Children   []*FlatNode     `json:"children"`
 }
 
 type NodeRepo interface {
