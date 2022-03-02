@@ -22,6 +22,8 @@ ENTRYPOINT [ "/dlv.sh" ]
 
 FROM alpine:3.14 as prod
 
+RUN apk --update add postgresql-client
+
 COPY --from=debug /usr/app /usr/app
 COPY ./wait-for-db.sh /
 RUN chmod +x /wait-for-db.sh
