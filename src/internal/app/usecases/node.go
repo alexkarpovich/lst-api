@@ -136,8 +136,8 @@ func (i *NodeInteractor) AttachText(nodeId *valueobject.ID, inText app.Text) (*a
 	return text, nil
 }
 
-func (i *NodeInteractor) DetachText(nodeId *valueobject.ID, textId *valueobject.ID) error {
-	err := i.NodeRepo.DetachText(nodeId, textId)
+func (i *NodeInteractor) DetachText(actorId *valueobject.ID, nodeId *valueobject.ID) error {
+	err := i.NodeRepo.DetachText(nodeId)
 	if err != nil {
 		return err
 	}

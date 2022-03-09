@@ -108,5 +108,5 @@ type NodeRepo interface {
 	AttachTranslation(*valueobject.ID, *valueobject.ID, Translation) (*Translation, error)
 	DetachTranslation(*valueobject.ID, *valueobject.ID) error
 	AttachText(*valueobject.ID, Text) (*Text, error)
-	DetachText(*valueobject.ID, *valueobject.ID) error
+	DetachText(*valueobject.ID) error
 }

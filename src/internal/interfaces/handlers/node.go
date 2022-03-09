@@ -52,7 +52,7 @@ func ConfigureNodeHandler(fi NodeInteractor, r *mux.Router) {
 	h.router.HandleFunc("/me/nodes/{node_id}/attach-translation", h.AttachTranslation()).Methods("POST")
 	h.router.HandleFunc("/me/nodes/{node_id}/detach-translation/{translation_id}", h.DetachTranslation()).Methods("POST")
 	h.router.HandleFunc("/me/nodes/{node_id}/attach-text", h.AttachText()).Methods("POST")
-	h.router.HandleFunc("/me/nodes/{node_id}/detach-text/{text_id}", h.DetachText()).Methods("POST")
+	h.router.HandleFunc("/me/nodes/{node_id}/detach-text", h.DetachText()).Methods("POST")
 }
 
 func (i *nodeHandler) View() http.HandlerFunc {
@@ -354,7 +354,6 @@ func (i *nodeHandler) AttachText() http.HandlerFunc {
 		inText := app.Text{
 			Id:       s.Id,
 			AuthorId: user.Id,
-			Title:    s.Title,
 			Content:  s.Content,
 		}
 
@@ -378,15 +377,15 @@ func (i *nodeHandler) DetachText() http.HandlerFunc {
 			utils.SendJsonError(w, "Invalid slice id", http.StatusBadRequest)
 			return
 		}
-		textIdArg, err := strconv.Atoi(vars["text_id"])
-		if err != nil {
-			utils.SendJsonError(w, "Invalid text id", http.StatusBadRequest)
+		nodeId := valueobject.ID(nodeIdArg)
+
+		user := utils.LoggedInUser(r)
+		if user == nil {
+			log.Println("error slice create context")
 			return
 		}
-		nodeId := valueobject.ID(nodeIdArg)
-		textId := valueobject.ID(textIdArg)
 
-		err = i.NodeInteractor.DetachExpression(&nodeId, &textId)
+		err = i.NodeInteractor.DetachText(user.Id, &nodeId)
 		if err != nil {
 			utils.SendJsonError(w, "Detach text error", http.StatusBadRequest)
 			return

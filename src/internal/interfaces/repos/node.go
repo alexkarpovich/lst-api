@@ -610,7 +610,7 @@ func (r *NodeRepo) AttachText(nodeId *valueobject.ID, text app.Text) (*app.Text,
 	return &text, nil
 }
 
-func (r *NodeRepo) DetachText(nodeId *valueobject.ID, textId *valueobject.ID) error {
+func (r *NodeRepo) DetachText(nodeId *valueobject.ID) error {
 	query := `UPDATE nodes SET text_id=NULL WHERE id=$1`
 	_, err := r.db.Db().Exec(query, nodeId)
 	if err != nil {
