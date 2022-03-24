@@ -259,6 +259,25 @@ func (r *NodeRepo) View(ids []valueobject.ID) (*app.NodeView, error) {
 
 	nodeView.Expressions = expressions
 
+	if len(ids) == 1 {
+		text := &app.Text{}
+		query = `
+			SELECT id, author_id, content, created_at FROM texts
+			WHERE id=(SELECT text_id FROM nodes WHERE id=$1)
+		`
+		err := r.db.Db().QueryRow(query, ids[0]).
+			Scan(&text.Id, &text.AuthorId, &text.Content, &text.CreatedAt)
+		if err != nil {
+			if err != sql.ErrNoRows {
+				return nil, err
+			}
+
+			nodeView.Text = nil
+		} else {
+			nodeView.Text = text
+		}
+	}
+
 	return &nodeView, nil
 }
 

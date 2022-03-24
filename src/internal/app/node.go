@@ -82,6 +82,7 @@ type Node struct {
 }
 
 type NodeView struct {
+	Text        *Text         `json:"text"`
 	Expressions []*Expression `json:"expressions"`
 }
 
