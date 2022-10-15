@@ -16,7 +16,6 @@ import (
 
 func configureRouter(repos *repos.Repos, services *services.Services) http.Handler {
 	baseRouter := mux.NewRouter().StrictSlash(true)
-	baseRouter.PathPrefix("/api")
 
 	authInterector := usecases.NewAuthInteractor(repos.User, services.Email)
 	app_handlers.ConfigureAuthHandler(authInterector, baseRouter)
